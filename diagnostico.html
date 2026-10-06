@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Dónde se te escapa la plata?</title>
+<meta name="description" content="Diagnóstico gratis de tu negocio en 2 minutos: qué parte está sin control y qué CODIFACT te conviene.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500&display=swap">
+<style>
+/* Embudo de diagnóstico: portada con la promesa y una muestra del resultado,
+   8 preguntas de una en una, tres datos y el resultado por tipo de negocio.
+   Mismo mundo visual que «Arma tu CODIFACT»: papel, tinta y verde billete.
+   Una sola apariencia clara, a propósito (como la web aprobada). */
+:root {
+  --papel:#f1f2ec; --hoja:#fbfbf8; --tinta:#14201a; --gris:#55615a; --linea:#d9ded5;
+  --verde:#1d5b43; --verde-claro:#e3ede6; --alerta:#a4501c; --alerta-claro:#f6e6dc; --medio:#b07d12; --medio-claro:#f5ecd6;
+  --rotulo:"Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+  --cuerpo:"Schibsted Grotesk", "Segoe UI", Arial, sans-serif;
+  --mono:"Martian Mono", "Courier New", monospace;
+  color-scheme:light;
+}
+* { box-sizing:border-box; }
+html, body { background:var(--papel); color:var(--tinta); }
+body { margin:0; font:17px/1.5 var(--cuerpo); padding-inline:16px; padding-block:0 40px; }
+.marco { max-width:1080px; margin:0 auto; }
+button { font:inherit; color:inherit; cursor:pointer; }
+:focus-visible { outline:3px solid var(--alerta); outline-offset:3px; }
+
+/* Barra superior */
+.arriba { display:flex; align-items:center; gap:12px; padding-block:20px 16px; border-bottom:2px solid var(--tinta); }
+.logo { display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--tinta); }
+.logo svg { width:46px; height:46px; color:var(--verde); }
+.logo b { display:block; font:900 1.9rem/.9 var(--rotulo); letter-spacing:.05em; }
+.logo small { display:block; font:400 .68rem/1.4 var(--mono); color:var(--gris); }
+.arriba .paso { margin-left:auto; font:500 .8rem var(--mono); color:var(--gris); text-align:right; }
+@media (max-width: 520px) { .arriba .paso { display:none; } .logo small { display:none; } .prueba-linea { font-size:.7rem; } }
+
+/* Pantallas */
+.pantalla[hidden] { display:none !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .pantalla.entra { animation:entra .35s ease-out both; }
+  @keyframes entra { from { opacity:0; transform:translateX(26px); } to { opacity:1; transform:none; } }
+}
+
+/* Portada: titular corto con el giro que rota, abanico de 5 tarjetas con lo
+   que el lead se lleva, y la primera pregunta ya abierta debajo. */
+.portada { padding-block:34px 10px; text-align:center; }
+.prueba-linea { font:500 .78rem var(--mono); color:var(--gris); margin:0 0 18px; }
+.prueba-linea b { color:var(--alerta); font-weight:500; }
+.portada h1 { font:900 clamp(2.3rem, 5.6vw, 4.3rem)/.95 var(--rotulo); text-transform:uppercase; margin:0 auto; max-width:16ch; text-wrap:balance; }
+.giro-rota { display:inline-block; position:relative; vertical-align:bottom; background:var(--verde); color:var(--papel); padding:0 .22em; margin-top:.06em;
+  height:1.02em; overflow:hidden; clip-path:inset(0); transition:width .45s cubic-bezier(.2,.8,.2,1); white-space:nowrap; }
+.giro-rota span { display:block; line-height:1.02em; }
+.giro-rota span.sale { animation:sale .45s cubic-bezier(.6,0,.4,1) forwards; }
+.giro-rota span.entra { animation:entraG .45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes sale { to { transform:translateY(-100%); opacity:0; } }
+@keyframes entraG { from { transform:translateY(100%); opacity:0; } to { transform:none; opacity:1; } }
+.portada .sub { font:600 1.05rem var(--cuerpo); color:var(--gris); margin:14px 0 0; }
+
+/* Abanico */
+.abanico { position:relative; height:470px; margin:26px auto 0; max-width:1180px; perspective:1600px; }
+.carta { position:absolute; left:50%; top:20px; width:310px; height:400px; margin-left:-155px; background:#15211b; color:#e7ece8; border:1px solid #2c3b33;
+  border-radius:16px; box-shadow:0 40px 70px -28px rgba(20,32,26,.55); padding:16px 18px; text-align:left; overflow:hidden; font-size:.82rem;
+  transform:translateX(var(--x)) translateY(var(--y)) rotate(var(--r)) scale(var(--s)); z-index:var(--z); }
+.carta:nth-child(1) { --x:-440px; --y:58px; --r:-9deg; --s:.86; --z:1; }
+.carta:nth-child(2) { --x:-228px; --y:22px; --r:-4.5deg; --s:.93; --z:2; }
+.carta:nth-child(3) { --x:0px; --y:0px; --r:0deg; --s:1; --z:3; }
+.carta:nth-child(4) { --x:228px; --y:22px; --r:4.5deg; --s:.93; --z:2; }
+.carta:nth-child(5) { --x:440px; --y:58px; --r:9deg; --s:.86; --z:1; }
+@media (prefers-reduced-motion: no-preference) {
+  .carta { animation:abre 1s cubic-bezier(.2,.8,.2,1) both; }
+  .carta:nth-child(1), .carta:nth-child(5) { animation-delay:.25s; }
+  .carta:nth-child(2), .carta:nth-child(4) { animation-delay:.12s; }
+  .carta:nth-child(3) { animation:abre 1s cubic-bezier(.2,.8,.2,1) both, flota 5s ease-in-out 1.2s infinite; }
+  @keyframes abre { from { transform:translateX(0) translateY(60px) rotate(0) scale(.9); opacity:0; } }
+  @keyframes flota { 50% { transform:translateY(-10px); } }
+}
+.carta .barrita { display:flex; gap:5px; align-items:center; color:#8a9a90; font:400 .68rem var(--mono); margin-bottom:12px; }
+.carta .barrita i { width:7px; height:7px; border-radius:50%; background:#3a4a41; }
+.carta .barrita span { margin-left:6px; }
+.carta h4 { margin:0 0 12px; font:600 1rem var(--cuerpo); display:flex; gap:8px; align-items:center; color:#f3f6f3; }
+.carta h4 svg { width:18px; height:18px; color:#5fbf93; flex:none; }
+.marcador { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; border:1px solid #2c3b33; border-radius:10px; padding:12px; margin-bottom:12px; }
+.aro { width:76px; height:76px; position:relative; }
+.aro svg { width:76px; height:76px; transform:rotate(-90deg); }
+.aro b { position:absolute; inset:0; display:grid; place-items:center; font:900 1.7rem/1 var(--rotulo); color:#f3f6f3; }
+.aro small { position:absolute; left:0; right:0; bottom:13px; text-align:center; font:400 .55rem var(--mono); color:#8a9a90; }
+.marcador ul { list-style:none; margin:0; padding:0; display:grid; gap:4px; font-size:.74rem; color:#c9d3cc; }
+.marcador li::before { content:""; display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; background:#5fbf93; vertical-align:1px; }
+.marcador li.r::before { background:#e3784a; }
+.fila-a { display:flex; justify-content:space-between; align-items:center; border:1px solid #2c3b33; border-radius:8px; padding:7px 10px; margin-bottom:6px; color:#dfe6e1; }
+.fila-a.cuello { border-color:#a4501c; background:rgba(164,80,28,.14); }
+.fila-a em { font-style:normal; font:500 .62rem var(--mono); padding:2px 6px; border-radius:4px; }
+.t-ok { background:rgba(95,191,147,.16); color:#7fd3aa; } .t-medio { background:rgba(214,163,50,.16); color:#e6bd5c; } .t-mal { background:rgba(227,120,74,.18); color:#f09a72; }
+.carta .boton-c { margin-top:10px; background:#2fbf7a; color:#0e1a14; border-radius:8px; padding:9px 12px; font:600 .78rem var(--cuerpo); display:flex; justify-content:space-between; }
+.aviso-c { border-left:3px solid #e3784a; background:rgba(227,120,74,.1); padding:9px 10px; color:#e8d6cc; margin-bottom:12px; line-height:1.4; }
+.aviso-c b { display:block; color:#f09a72; font:500 .66rem var(--mono); margin-bottom:3px; }
+.punto { display:flex; gap:8px; align-items:center; border:1px solid #2c3b33; border-radius:8px; padding:8px 10px; margin-bottom:6px; color:#dfe6e1; }
+.punto::before { content:""; width:6px; height:6px; border-radius:50%; background:#e3784a; flex:none; }
+.plan-c { font:900 2.3rem/.9 var(--rotulo); text-transform:uppercase; color:#7fd3aa; margin:2px 0 12px; }
+.check { display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; color:#dfe6e1; line-height:1.35; }
+.check::before { content:"✓"; color:#5fbf93; font-weight:700; }
+.semana { border:1px solid #2c3b33; border-radius:8px; padding:8px 10px; margin-bottom:6px; color:#dfe6e1; }
+.semana small { display:block; font:400 .62rem var(--mono); color:#7fd3aa; }
+.progreso-c { height:6px; background:#26342d; border-radius:4px; overflow:hidden; margin:4px 0 12px; }
+.progreso-c i { display:block; height:100%; width:25%; background:#2fbf7a; }
+.carta img { width:100%; height:250px; object-fit:cover; object-position:left top; border-radius:8px; border:1px solid #2c3b33; display:block; }
+.carta .pie-c { margin-top:10px; color:#8a9a90; font:400 .64rem var(--mono); }
+
+/* Primera pregunta, ya en la portada */
+.arranque { position:relative; z-index:5; max-width:760px; margin:-36px auto 0; background:var(--hoja); border:1px solid var(--linea); border-radius:18px;
+  padding:24px 22px 20px; box-shadow:0 30px 60px -36px rgba(20,32,26,.45); }
+.arranque small { display:block; font:500 .78rem var(--mono); color:var(--verde); }
+.arranque h2 { font:900 clamp(1.7rem, 3.6vw, 2.3rem)/1 var(--rotulo); text-transform:uppercase; margin:8px 0 16px; }
+.arranque .opciones { text-align:left; }
+.arranque .notas { margin-top:14px; font-size:.85rem; }
+
+@media (max-width: 760px) {
+  .abanico { height:360px; }
+  .carta { width:230px; height:320px; margin-left:-115px; font-size:.74rem; padding:13px 14px; }
+  .carta:nth-child(1), .carta:nth-child(5) { display:none; }
+  .carta:nth-child(2) { --x:-112px; --y:26px; --r:-6deg; --s:.88; }
+  .carta:nth-child(4) { --x:112px; --y:26px; --r:6deg; --s:.88; }
+  .aro, .aro svg { width:60px; height:60px; } .aro b { font-size:1.35rem; } .aro small { bottom:9px; }
+  .carta img { height:190px; }
+  .arranque { margin-top:-28px; padding:20px 16px 16px; }
+}
+@media (max-width: 420px) { .carta:nth-child(2), .carta:nth-child(4) { --x:-78px; } .carta:nth-child(4) { --x:78px; } }
+
+.indice { font:900 4.2rem/.85 var(--rotulo); }
+.indice span { font-size:1.6rem; color:var(--gris); }
+
+/* Barras por área (portada y resultado) */
+.areas { display:flex; flex-direction:column; gap:12px; }
+.area { display:grid; grid-template-columns:96px minmax(0,1fr) 92px; gap:12px; align-items:center; font-size:.95rem; }
+.area .riel { height:12px; background:var(--papel); border:1px solid var(--linea); position:relative; overflow:hidden; }
+.area .riel i { position:absolute; inset:0 auto 0 0; background:var(--verde); }
+.area.baja .riel i { background:var(--alerta); } .area.media .riel i { background:var(--medio); }
+.area .est { font:500 .72rem var(--mono); text-align:right; }
+.area.baja .est { color:var(--alerta); } .area.media .est { color:var(--medio); } .area.alta .est { color:var(--verde); }
+.area.fuera { opacity:.45; }
+@media (prefers-reduced-motion: no-preference) { .area .riel i { transition:width .9s cubic-bezier(.2,.8,.2,1); } }
+
+/* Preguntas */
+.pregunta { max-width:760px; margin:0 auto; padding-block:34px 20px; }
+.etapas { display:flex; gap:6px; margin-bottom:26px; }
+.etapas div { flex:1; }
+.etapas .linea { height:5px; background:var(--linea); position:relative; overflow:hidden; }
+.etapas .linea i { position:absolute; inset:0 auto 0 0; background:var(--verde); width:0; }
+.etapas small { display:block; margin-top:6px; font:500 .72rem var(--mono); color:var(--gris); }
+.etapas .activa small { color:var(--tinta); }
+.pregunta h2 { font:900 clamp(2rem, 4.6vw, 3rem)/.98 var(--rotulo); text-transform:uppercase; margin:0 0 10px; text-wrap:balance; }
+.pregunta p.ayuda { color:var(--gris); margin:0 0 22px; max-width:60ch; }
+.opciones { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap:10px; }
+.opcion { display:flex; align-items:center; gap:14px; text-align:left; background:var(--hoja); border:2px solid var(--linea); padding:14px 16px; min-height:64px; }
+.opcion:hover { border-color:var(--tinta); }
+.opcion kbd { flex:none; width:30px; height:30px; display:grid; place-items:center; border:1.5px solid var(--linea); font:500 .8rem var(--mono); color:var(--gris); background:var(--papel); }
+.opcion b { display:block; font-weight:600; }
+.opcion small { display:block; color:var(--gris); font-size:.86rem; line-height:1.35; }
+.opcion[aria-pressed="true"] { border-color:var(--verde); background:var(--verde-claro); }
+.opcion[aria-pressed="true"] kbd { background:var(--verde); color:var(--papel); border-color:var(--verde); }
+.atras { margin-top:22px; background:none; border:0; color:var(--gris); padding:6px 0; text-decoration:underline; }
+.tip { margin-top:10px; font:400 .75rem var(--mono); color:var(--gris); }
+@media (hover: none) { .tip { display:none; } }
+
+/* Datos */
+.datos { max-width:620px; margin:0 auto; padding-block:40px 20px; }
+.datos h2 { font:900 clamp(2.2rem, 5vw, 3.2rem)/.95 var(--rotulo); text-transform:uppercase; margin:0 0 10px; }
+.datos p { color:var(--gris); margin:0 0 22px; }
+.campo { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; font-weight:600; }
+.campo input { font:inherit; font-weight:400; padding:13px 14px; border:2px solid var(--linea); background:var(--hoja); color:var(--tinta); }
+.campo input:focus { border-color:var(--verde); outline:none; }
+.error { color:var(--alerta); font-size:.9rem; min-height:1.4em; margin:4px 0 12px; }
+
+/* Resultado */
+.resultado { padding-block:30px 10px; }
+.res-cab { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:end; border-bottom:2px solid var(--tinta); padding-bottom:20px; }
+@media (max-width: 700px) { .res-cab { grid-template-columns:minmax(0,1fr); } }
+.res-cab small { font:500 .78rem var(--mono); color:var(--gris); }
+.res-cab h2 { font:900 clamp(2.2rem, 5vw, 3.4rem)/.95 var(--rotulo); text-transform:uppercase; margin:6px 0 0; text-wrap:balance; }
+.res-indice { text-align:right; }
+.res-indice .indice { font-size:6rem; }
+@media (max-width: 700px) { .res-indice { text-align:left; } }
+.res-grid { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:28px; padding-top:26px; }
+@media (max-width: 860px) { .res-grid { grid-template-columns:minmax(0,1fr); } }
+.res-grid h3 { font:900 1.7rem/1 var(--rotulo); text-transform:uppercase; margin:0 0 14px; }
+.fuga { background:var(--alerta-claro); border-left:6px solid var(--alerta); padding:18px 20px; margin-top:22px; }
+.fuga b { display:block; font:900 1.5rem/1.05 var(--rotulo); text-transform:uppercase; color:var(--alerta); margin-bottom:6px; }
+.fuga p { margin:0; }
+.plan { background:var(--verde); color:var(--papel); padding:24px; }
+.plan small { font:500 .78rem var(--mono); opacity:.85; }
+.plan .nombre { font:900 3.4rem/.9 var(--rotulo); text-transform:uppercase; margin:6px 0 12px; }
+.plan ul { margin:0; padding-left:20px; }
+.plan li { margin:5px 0; }
+.giro { margin-top:16px; padding:16px 18px; border:1px solid var(--linea); background:var(--hoja); }
+.giro b { display:block; margin-bottom:4px; }
+.giro.honesto { border-left:6px solid var(--medio); background:var(--medio-claro); }
+.captura { margin-top:26px; }
+.captura img { width:100%; height:auto; border:1px solid var(--linea); display:block; }
+.captura p { font:400 .78rem var(--mono); color:var(--gris); margin:8px 0 0; }
+.ruta30 { margin-top:30px; border-top:1px solid var(--linea); padding-top:22px; }
+.ruta30 ol { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap:14px; }
+.ruta30 li { background:var(--hoja); border:1px solid var(--linea); padding:16px; }
+.ruta30 li small { display:block; font:500 .75rem var(--mono); color:var(--verde); margin-bottom:6px; }
+.cierre { margin-top:34px; background:var(--tinta); color:var(--papel); padding:28px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:20px; align-items:center; }
+@media (max-width: 760px) { .cierre { grid-template-columns:minmax(0,1fr); } }
+.cierre h3 { font:900 2rem/1 var(--rotulo); text-transform:uppercase; margin:0 0 8px; }
+.cierre p { margin:0; color:#c9d1cb; }
+.cierre .boton { background:var(--papel); color:var(--tinta); }
+.cierre .boton:hover { background:#fff; }
+.mensaje { margin-top:14px; width:100%; min-height:150px; font:400 .9rem var(--mono); padding:12px; border:1px solid #3b4a42; background:#1e2b24; color:var(--papel); }
+.pie { margin-top:30px; color:var(--gris); font-size:.85rem; display:flex; gap:16px; flex-wrap:wrap; justify-content:space-between; }
+.pie button { background:none; border:0; text-decoration:underline; color:var(--gris); padding:0; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header class="arriba">
+    <a class="logo" href="index.html" aria-label="CODIFACT by Código Fantasma">
+      <svg viewBox="0 0 128 128" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M 97.7 35.7 A 44 44 0 1 0 97.7 92.3" stroke-width="7"/><path d="M 78.9 42.7 A 26 26 0 1 0 78.9 85.3" stroke-width="6"/><path d="M 40 86 L 56 66 L 66 76 L 96 42" stroke-width="7"/></g><path d="M 104 34 L 89.4 39.6 L 98.6 49.4 Z" fill="currentColor"/><g fill="currentColor"><circle cx="49.6" cy="94.8" r="2.9"/><circle cx="58.1" cy="97.5" r="2.9"/><circle cx="67.0" cy="97.9" r="2.9"/><circle cx="75.6" cy="95.9" r="2.9"/></g></svg>
+      <span><b>CODIFACT</b><small>by Código Fantasma</small></span>
+    </a>
+    <span class="paso" id="paso">Diagnóstico gratis · 2 minutos</span>
+  </header>
+
+  <!-- PORTADA -->
+  <section class="pantalla portada" id="p-portada">
+    <p class="prueba-linea">Nació en una distribuidora real de Ecuador · su tablero inflaba la utilidad en <b>+$20.000 al mes</b></p>
+    <h1>¿Dónde se le escapa la plata a tu <span class="giro-rota" id="giro-rota" aria-live="off"><span>distribuidora</span></span>?</h1>
+    <p class="sub">Diagnóstico gratis en 2 minutos.</p>
+
+    <div class="abanico" aria-label="Lo que recibes al terminar (ejemplo)">
+      <div class="carta" aria-hidden="true">
+        <div class="barrita"><i></i><i></i><i></i><span>CODIFACT / Plan</span></div>
+        <h4><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6z"/></svg>Tu CODIFACT recomendado</h4>
+        <div class="plan-c">Distribuidora</div>
+        <div class="check">Facturas al SRI ilimitadas</div>
+        <div class="check">Hoja de carga y cuadre de ruta</div>
+        <div class="check">Cartera con antigüedad</div>
+        <div class="check">Utilidad real del mes</div>
+        <div class="check">Metas por zona</div>
+      </div>
+      <div class="carta" aria-hidden="true">
+        <div class="barrita"><i></i><i></i><i></i><span>CODIFACT / Fuga</span></div>
+        <h4><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 1 21h22zm0 6 7 11H5z"/></svg>Dónde se te escapa</h4>
+        <div class="aviso-c"><b>15/100 · Ruta sin control</b>El camión vuelve y el cuadre se hace en un cuaderno.</div>
+        <div class="punto">Faltantes que nadie ve a tiempo</div>
+        <div class="punto">Fiado que no se anota</div>
+        <div class="punto">Utilidad que no cuadra con la caja</div>
+      </div>
+      <div class="carta" aria-hidden="true">
+        <div class="barrita"><i></i><i></i><i></i><span>CODIFACT / Diagnóstico</span></div>
+        <h4><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 20h16v2H4zM6 10h3v8H6zm5-6h3v14h-3zm5 9h3v5h-3z"/></svg>Tu diagnóstico</h4>
+        <div class="marcador">
+          <div class="aro"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="32" fill="none" stroke="#26342d" stroke-width="7"/><circle id="aro-valor" cx="38" cy="38" r="32" fill="none" stroke="#2fbf7a" stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/></svg><b id="aro-num">0</b><small>de 100</small></div>
+          <ul><li>5 áreas revisadas</li><li class="r">Se escapa en: ruta</li><li>Plan: Distribuidora</li></ul>
+        </div>
+        <div class="fila-a"><span>Facturación</span><em class="t-medio">45 · a medias</em></div>
+        <div class="fila-a"><span>Bodega</span><em class="t-medio">50 · a medias</em></div>
+        <div class="fila-a"><span>Cartera</span><em class="t-medio">40 · a medias</em></div>
+        <div class="fila-a cuello"><span>Ruta</span><em class="t-mal">15 · sin control</em></div>
+        <div class="fila-a"><span>Utilidad</span><em class="t-medio">40 · a medias</em></div>
+        <div class="boton-c"><span>Siguiente · tu primer mes</span><span>→</span></div>
+      </div>
+      <div class="carta" aria-hidden="true">
+        <div class="barrita"><i></i><i></i><i></i><span>CODIFACT / Arranque</span></div>
+        <h4><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v11H5z"/></svg>Tu primer mes</h4>
+        <div class="progreso-c"><i></i></div>
+        <div class="semana"><small>Semana 1</small>Cargamos tus clientes y productos</div>
+        <div class="semana"><small>Semana 1</small>Tu primera factura, juntos</div>
+        <div class="semana"><small>Semanas 2 y 3</small>Primer cuadre de ruta</div>
+        <div class="semana"><small>Semana 4</small>Tu primer cierre con utilidad real</div>
+      </div>
+      <div class="carta" aria-hidden="true">
+        <div class="barrita"><i></i><i></i><i></i><span>CODIFACT / Cuadre</span></div>
+        <h4><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 4h18v12H3zm2 2v8h14V6zM8 18h8v2H8z"/></svg>Así se ve en CODIFACT</h4>
+        <img src="img/v-cuadre.png" alt="">
+        <div class="pie-c">Pantalla real · datos de ejemplo</div>
+      </div>
+    </div>
+
+    <div class="arranque">
+      <small>Pregunta 1 de 8 · empieza aquí</small>
+      <h2 id="arranque-titulo">¿Qué tipo de negocio tienes?</h2>
+      <div class="opciones" id="arranque-ops" role="group" aria-labelledby="arranque-titulo"></div>
+      <p class="notas">Gratis · Sin tarjeta · Resultado al instante</p>
+    </div>
+  </section>
+
+  <!-- PREGUNTAS (se pintan desde el script) -->
+  <section class="pantalla pregunta" id="p-pregunta" hidden aria-live="polite"></section>
+
+  <!-- DATOS -->
+  <section class="pantalla datos" id="p-datos" hidden>
+    <h2>Tu diagnóstico <span style="color:var(--verde)">está listo</span></h2>
+    <p>Dinos a quién se lo preparamos. Nada se envía hasta que tú nos escribas.</p>
+    <form id="form-datos" novalidate>
+      <label class="campo" for="d-nombre">Tu nombre<input id="d-nombre" autocomplete="given-name" placeholder="Ej.: María"></label>
+      <label class="campo" for="d-negocio">Nombre de tu negocio<input id="d-negocio" autocomplete="organization" placeholder="Ej.: Comercial La Esperanza"></label>
+      <label class="campo" for="d-ciudad">Ciudad<input id="d-ciudad" autocomplete="address-level2" placeholder="Ej.: Quito"></label>
+      <p class="error" id="d-error" role="alert"></p>
+      <button class="boton" type="submit">Ver mi diagnóstico <span aria-hidden="true">→</span></button>
+    </form>
+    <button class="atras" type="button" id="datos-atras">← Cambiar respuestas</button>
+  </section>
+
+  <!-- RESULTADO -->
+  <section class="pantalla resultado" id="p-resultado" hidden></section>
+</div>
+
+<script>
+/* ═══ Configuración (la pone el dueño) ═══
+   WHATSAPP: número con código de país y sin «+» (ej. "593991234567").
+   Vacío: el botón copia el mensaje para pegarlo en el chat. */
+const WHATSAPP = '';
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+/* ═══ Las 8 preguntas ═══ */
+const ETAPAS = ['Tu negocio', 'Tu control', 'Tu momento'];
+const PREGUNTAS = [
+  { id:'giro', etapa:0, t:'¿Qué tipo de negocio tienes?', ayuda:'Elige el que más se parece. Cambia lo que te vamos a recomendar.', ops:[
+    ['distribuidora','Distribuidora con camión','Repartes a tiendas por rutas'],
+    ['mayorista','Mayorista o bodega','Vendes al por mayor, sin camión propio'],
+    ['ferreteria','Ferretería','Materiales, herramientas, crédito a maestros'],
+    ['farmacia','Farmacia','Medicinas y productos de cuidado'],
+    ['agro','Almacén agropecuario','Insumos, balanceado, semillas'],
+    ['finca','Ganadería o finca','Vendes leche, ganado o cosecha'],
+    ['tienda','Tienda o minimarket','Vendes al detalle con bodega'],
+    ['otro','Otro','Restaurante, servicios u otro giro'] ] },
+  { id:'factura', etapa:0, t:'¿Cómo facturas hoy?', ayuda:'Desde 2026 el SRI pide transmitir cada comprobante en el momento.', ops:[
+    ['notas','No facturo o uso notas de venta',''],
+    ['portal','En el portal gratuito del SRI','Una por una, a mano'],
+    ['sistema','En un sistema que solo factura','La factura no se conecta con lo demás'],
+    ['contador','Me factura el contador',''] ] },
+  { id:'cantidad', etapa:0, t:'¿Cuántas facturas haces al mes?', ayuda:'Más o menos. Con CODIFACT son ilimitadas en todos los planes.', ops:[
+    ['50','Menos de 50',''], ['300','50 a 300',''], ['1000','300 a 1.000',''], ['mas','Más de 1.000',''] ] },
+  { id:'bodega', etapa:1, t:'¿Cómo controlas tu inventario?', ayuda:'Lo que tienes en bodega y lo que vale.', ops:[
+    ['no','No lo controlo','Me entero cuando se acaba'], ['cuaderno','En un cuaderno',''], ['excel','En Excel',''],
+    ['sistema','En un sistema',''], ['na','No manejo inventario','Vendo servicios o producción propia'] ] },
+  { id:'credito', etapa:1, t:'¿Vendes a crédito?', ayuda:'Fiado, a 15 o 30 días, hasta la cosecha…', ops:[
+    ['no','No, todo de contado',''], ['anoto','Sí, y lo anoto en cuaderno o Excel',''],
+    ['nose','Sí, y no sé bien cuánto me deben',''], ['sistema','Sí, y lo llevo en un sistema',''] ] },
+  { id:'ruta', etapa:1, t:'¿Repartes en camión?', ayuda:'Si repartes, ¿cómo cuadras la plata cuando vuelve?', ops:[
+    ['no','No reparto',''], ['cuaderno','Sí, y cuadro en un cuaderno',''], ['excel','Sí, y cuadro en Excel',''],
+    ['falla','Sí, y no siempre cuadra','A veces falta plata y no sé por qué'] ] },
+  { id:'gano', etapa:2, t:'¿Sabes exactamente cuánto ganaste el mes pasado?', ayuda:'No lo que vendiste: lo que te quedó después de compras, gastos y fiado.', ops:[
+    ['si','Sí, al centavo',''], ['masmenos','Más o menos',''], ['vendi','Sé lo que vendí, no lo que gané',''], ['no','No',''] ] },
+  { id:'cuando', etapa:2, t:'¿Cuándo quieres resolver esto?', ayuda:'Así sabemos cómo ayudarte.', ops:[
+    ['ya','Ya, es mi prioridad',''], ['mes','Este mes',''], ['meses','En unos meses',''], ['mirando','Solo estoy mirando',''] ] },
+];
+const resp = {};
+let i = 0;
+
+/* ═══ Muestra de la portada ═══ */
+function barras(lista) {
+  return lista.map(a => `<div class="area ${a.fuera ? 'fuera' : a.v < 35 ? 'baja' : a.v < 65 ? 'media' : 'alta'}">
+    <span>${esc(a.n)}</span><div class="riel"><i style="width:${a.fuera ? 0 : a.v}%"></i></div>
+    <span class="est">${a.fuera ? 'No aplica' : a.v < 35 ? 'Sin control' : a.v < 65 ? 'A medias' : 'Controlado'}</span></div>`).join('');
+}
+/* ═══ Portada ═══ */
+const q0 = PREGUNTAS[0];
+$('arranque-ops').innerHTML = q0.ops.map(([v, tt, s], k) =>
+  `<button type="button" class="opcion" data-v="${v}"><kbd>${String.fromCharCode(65 + k)}</kbd><span><b>${esc(tt)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`).join('');
+$('arranque-ops').querySelectorAll('.opcion').forEach(b => b.addEventListener('click', () => {
+  resp.giro = b.dataset.v; b.setAttribute('aria-pressed', 'true');
+  setTimeout(() => { i = 1; pintarPregunta(); }, 220);
+}));
+// El giro que rota en el titular. Sin animación si la persona la pidió reducida.
+const GIROS_ROTA = ['distribuidora', 'ferretería', 'farmacia', 'tienda', 'bodega', 'agroveterinaria', 'finca'];
+const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let gi = 0;
+function medirGiro(txt) { const m = document.createElement('span'); m.textContent = txt; m.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap'; $('giro-rota').appendChild(m); const w = m.offsetWidth; m.remove(); return w; }
+function fijarAncho(txt) { const caja = $('giro-rota'); const pad = parseFloat(getComputedStyle(caja).paddingLeft) * 2; caja.style.width = (medirGiro(txt) + pad) + 'px'; }
+if (!quieto) {
+  document.fonts.ready.then(() => fijarAncho(GIROS_ROTA[0]));
+  setInterval(() => {
+    if ($('p-portada').hidden) return;
+    const caja = $('giro-rota'), viejo = caja.querySelector('span:not(.sale)');
+    gi = (gi + 1) % GIROS_ROTA.length;
+    const nuevo = document.createElement('span'); nuevo.textContent = GIROS_ROTA[gi]; nuevo.className = 'entra';
+    if (viejo) { viejo.className = 'sale'; viejo.style.position = 'absolute'; viejo.style.left = getComputedStyle(caja).paddingLeft; viejo.addEventListener('animationend', () => viejo.remove(), { once: true }); }
+    caja.appendChild(nuevo); fijarAncho(GIROS_ROTA[gi]);
+  }, 2200);
+}
+// El aro del diagnóstico de ejemplo sube hasta 38.
+(function aro() {
+  const fin = 38, total = 201;
+  if (quieto) { $('aro-num').textContent = fin; $('aro-valor').setAttribute('stroke-dashoffset', total * (1 - fin / 100)); return; }
+  const t0 = performance.now() + 900;
+  const paso = (now) => { const k = Math.max(0, Math.min(1, (now - t0) / 1400)), e = 1 - Math.pow(1 - k, 3);
+    $('aro-num').textContent = Math.round(fin * e); $('aro-valor').setAttribute('stroke-dashoffset', total * (1 - fin / 100 * e));
+    if (k < 1) requestAnimationFrame(paso); };
+  requestAnimationFrame(paso);
+})();
+
+/* ═══ Navegación ═══ */
+function mostrar(id) {
+  document.querySelectorAll('.pantalla').forEach(p => { p.hidden = p.id !== id; p.classList.remove('entra'); });
+  const p = $(id); void p.offsetWidth; p.classList.add('entra');
+  window.scrollTo({ top: 0 });
+}
+function pintarPregunta() {
+  const q = PREGUNTAS[i];
+  $('paso').textContent = `Pregunta ${i + 1} de ${PREGUNTAS.length}`;
+  const avance = ETAPAS.map((n, e) => {
+    const qs = PREGUNTAS.filter(x => x.etapa === e), hechas = qs.filter(x => PREGUNTAS.indexOf(x) < i).length;
+    return `<div class="${e === q.etapa ? 'activa' : ''}"><div class="linea"><i style="width:${hechas / qs.length * 100}%"></i></div><small>${esc(n)}</small></div>`;
+  }).join('');
+  $('p-pregunta').innerHTML = `<div class="etapas">${avance}</div>
+    <h2 id="q-titulo">${esc(q.t)}</h2><p class="ayuda">${esc(q.ayuda)}</p>
+    <div class="opciones" role="group" aria-labelledby="q-titulo">${q.ops.map(([v, t, s], k) =>
+      `<button type="button" class="opcion" data-v="${v}" aria-pressed="${resp[q.id] === v}"><kbd>${String.fromCharCode(65 + k)}</kbd><span><b>${esc(t)}</b>${s ? `<small>${esc(s)}</small>` : ''}</span></button>`).join('')}</div>
+    <button class="atras" type="button" id="q-atras">← Atrás</button>
+    <p class="tip">Puedes responder con las letras del teclado.</p>`;
+  mostrar('p-pregunta');
+  $('p-pregunta').querySelectorAll('.opcion').forEach(b => b.addEventListener('click', () => elegir(b.dataset.v)));
+  $('q-atras').addEventListener('click', () => { if (i === 0) { mostrar('p-portada'); $('paso').textContent = 'Diagnóstico gratis · 2 minutos'; } else { i--; pintarPregunta(); } });
+}
+function elegir(v) {
+  resp[PREGUNTAS[i].id] = v;
+  $('p-pregunta').querySelectorAll('.opcion').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+  setTimeout(() => { if (i < PREGUNTAS.length - 1) { i++; pintarPregunta(); } else { $('paso').textContent = 'Último paso'; mostrar('p-datos'); $('d-nombre').focus(); } }, 220);
+}
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea')) return;
+  if (!$('p-portada').hidden) { const k0 = e.key.toUpperCase().charCodeAt(0) - 65; if (e.key.length === 1 && k0 >= 0 && k0 < q0.ops.length) $('arranque-ops').children[k0].click(); return; }
+  if ($('p-pregunta').hidden) return;
+  const k = e.key.toUpperCase().charCodeAt(0) - 65, q = PREGUNTAS[i];
+  if (e.key.length === 1 && k >= 0 && k < q.ops.length) elegir(q.ops[k][0]);
+});
+$('datos-atras').addEventListener('click', () => { i = PREGUNTAS.length - 1; pintarPregunta(); });
+
+/* ═══ El diagnóstico ═══ */
+const GIROS = {
+  distribuidora: { n:'distribuidora', texto:'Para tu distribuidora', puntos:['Hoja de carga con las pacas de cada ruta','Cuadre del camión al centavo cuando vuelve','Metas por zona y utilidad real por tamaño'] },
+  mayorista: { n:'mayorista', texto:'Para tu negocio mayorista', puntos:['Compras que entran solas con el XML del proveedor','Precios A, B, C y mayorista por producto','Cartera por antigüedad: quién te debe y desde cuándo'] },
+  ferreteria: { n:'ferretería', texto:'Para tu ferretería', puntos:['Cientos de productos con código, por unidad o por caja','Crédito a maestros y constructoras, con sus abonos','Pedido sugerido según lo que vendes y lo que queda'] },
+  farmacia: { n:'farmacia', texto:'Para tu farmacia', puntos:['Facturación al SRI, inventario y compras con XML','Cartera y utilidad real del mes'],
+    honesto:'Te lo decimos de frente: CODIFACT todavía no controla lotes ni fechas de caducidad. Si eso es clave para ti, lo conversamos antes de que decidas.' },
+  agro: { n:'almacén agropecuario', texto:'Para tu almacén agropecuario', puntos:['Crédito hasta la cosecha, con la antigüedad de cada deuda','Insumos que entran con el XML del proveedor','Venta por saco y por unidad'] },
+  finca: { n:'finca', texto:'Para tu finca', puntos:['Facturas al SRI tu leche, ganado o cosecha, sin límite','Cada comprador con su historial y su saldo'],
+    honesto:'CODIFACT no lleva el inventario de animales ni la producción de la finca. Lo que sí te resuelve es la facturación y el cobro.' },
+  tienda: { n:'tienda', texto:'Para tu tienda', puntos:['Stock al día que baja con cada venta','Compras con el XML del proveedor','Utilidad real del mes, sin calcularla a mano'] },
+  otro: { n:'negocio', texto:'Para tu negocio', puntos:['Facturación electrónica al SRI, ilimitada'],
+    honesto:'CODIFACT está hecho para quien vende productos al por mayor, reparte o tiene bodega. Si tu negocio es otro, quizá solo necesitas facturar: te lo decimos sin rodeos.' },
+};
+const PUNTAJE = {
+  factura: { notas:20, portal:45, sistema:65, contador:40 },
+  bodega: { no:15, cuaderno:30, excel:50, sistema:75, na:null },
+  credito: { no:null, anoto:40, nose:15, sistema:75 },
+  ruta: { no:null, cuaderno:35, excel:50, falla:15 },
+  gano: { si:80, masmenos:40, vendi:20, no:15 },
+};
+const FUGAS = {
+  'Utilidad': ['Se te escapa en la utilidad', 'Vendes y no sabes cuánto te queda. Sin restar costo, gastos y fiado, la ganancia que ves puede ser plata que no existe.', 'img/v-dashboard.png', 'Así se ve tu utilidad real en CODIFACT: ventas, menos costo, menos gastos'],
+  'Ruta': ['Se te escapa en la ruta', 'El camión vuelve y el cuadre depende de un cuaderno. Un faltante que no se ve el mismo día ya no se recupera.', 'img/v-cuadre.png', 'Así se ve el cuadre del camión en CODIFACT'],
+  'Cartera': ['Se te escapa en la cartera', 'Te deben y no sabes con certeza cuánto ni desde cuándo. Lo que no se cobra a tiempo se vuelve pérdida.', 'img/v-cobranzas.png', 'Así se ven tus cuentas por cobrar en CODIFACT'],
+  'Bodega': ['Se te escapa en la bodega', 'Sin el stock al día compras de más, te quedas sin producto o no notas lo que falta.', 'img/v-stock.png', 'Así se ve tu bodega en CODIFACT'],
+  'Facturación': ['Se te escapa en la facturación', 'Facturar a mano te quita horas y no se conecta con nada más. Y el SRI ya pide transmitir cada comprobante en el momento.', 'img/v-facturacion.png', 'Así se factura en CODIFACT'],
+};
+const PLANES = {
+  Factura: ['Facturación electrónica al SRI','Facturas ilimitadas','Tus clientes y productos, migrados'],
+  Bodega: ['Facturación al SRI, ilimitada','Inventario y compras con XML','Cartera, abonos y tesorería','Utilidad real del mes'],
+  Distribuidora: ['Todo lo de Bodega','Hoja de carga y cuadre de ruta','Metas por zona y alertas de control'],
+  Completo: ['Todo lo de Distribuidora','Beneficios y bonificaciones del proveedor'],
+};
+
+function diagnosticar() {
+  const areas = [
+    { n:'Facturación', v: PUNTAJE.factura[resp.factura] },
+    { n:'Bodega', v: PUNTAJE.bodega[resp.bodega] },
+    { n:'Cartera', v: PUNTAJE.credito[resp.credito] },
+    { n:'Ruta', v: PUNTAJE.ruta[resp.ruta] },
+    { n:'Utilidad', v: PUNTAJE.gano[resp.gano] },
+  ].map(a => ({ ...a, fuera: a.v == null }));
+  const activas = areas.filter(a => !a.fuera);
+  const indice = Math.round(activas.reduce((s, a) => s + a.v, 0) / activas.length);
+  // La fuga: el área más baja; empate → la que más plata mueve.
+  const orden = ['Utilidad', 'Ruta', 'Cartera', 'Bodega', 'Facturación'];
+  const fuga = [...activas].sort((a, b) => a.v - b.v || orden.indexOf(a.n) - orden.indexOf(b.n))[0];
+  const reparte = resp.ruta !== 'no' || resp.giro === 'distribuidora';
+  const bodega = resp.bodega !== 'na' || resp.credito !== 'no';
+  let plan = reparte ? 'Distribuidora' : bodega ? 'Bodega' : 'Factura';
+  if (['finca', 'otro'].includes(resp.giro) && !reparte) plan = 'Factura';
+  return { areas, indice, fuga, plan, giro: GIROS[resp.giro] || GIROS.otro };
+}
+
+function textoWhatsApp(d, datos) {
+  const op = (id) => { const q = PREGUNTAS.find(x => x.id === id); return (q.ops.find(o => o[0] === resp[id]) || [, '—'])[1]; };
+  return [
+    `Hola, soy ${datos.nombre} de ${datos.negocio}${datos.ciudad ? ' (' + datos.ciudad + ')' : ''}.`,
+    `Hice el diagnóstico de CODIFACT:`,
+    `• Negocio: ${op('giro')}`,
+    `• Factura: ${op('factura')}, ${op('cantidad').toLowerCase()} al mes`,
+    `• Inventario: ${op('bodega')} · Crédito: ${op('credito')} · Ruta: ${op('ruta')}`,
+    `• ¿Sé cuánto gané?: ${op('gano')}`,
+    `• Índice de control: ${d.indice}/100 · se me escapa en: ${d.fuga.n.toLowerCase()}`,
+    `• Plan recomendado: ${d.plan}`,
+    `• Quiero resolverlo: ${op('cuando').toLowerCase()}`,
+    ``, `Quiero que me muestren mi negocio funcionando en CODIFACT.`
+  ].join('\n');
+}
+
+$('form-datos').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const datos = { nombre: $('d-nombre').value.trim(), negocio: $('d-negocio').value.trim(), ciudad: $('d-ciudad').value.trim() };
+  if (!datos.nombre || !datos.negocio) { $('d-error').textContent = 'Escribe tu nombre y el de tu negocio.'; (datos.nombre ? $('d-negocio') : $('d-nombre')).focus(); return; }
+  $('d-error').textContent = '';
+  pintarResultado(datos);
+});
+
+function pintarResultado(datos) {
+  const d = diagnosticar(), f = FUGAS[d.fuga.n], g = d.giro;
+  const urgente = ['ya', 'mes'].includes(resp.cuando);
+  $('paso').textContent = 'Tu diagnóstico';
+  $('p-resultado').innerHTML = `
+    <div class="res-cab">
+      <div><small>Diagnóstico de ${esc(datos.negocio)}</small><h2>${esc(datos.nombre)}, ${d.indice < 40 ? 'tu negocio está trabajando a ciegas' : d.indice < 65 ? 'tienes el control a medias' : 'vas bien, y se puede afinar'}</h2></div>
+      <div class="res-indice"><small>Índice de control</small><div class="indice">${d.indice}<span>/100</span></div></div>
+    </div>
+    <div class="res-grid">
+      <div>
+        <h3>Dónde estás hoy</h3>
+        <div class="areas" id="res-areas">${barras(d.areas.map(a => ({ ...a, v: 0 })))}</div>
+        <div class="fuga"><b>${esc(f[0])}</b><p>${esc(f[1])}</p></div>
+        <figure class="captura" style="margin-inline:0"><img src="${f[2]}" alt="${esc(f[3])}" loading="lazy"><p>${esc(f[3])} · pantalla real, datos de ejemplo</p></figure>
+      </div>
+      <div>
+        <div class="plan"><small>Tu CODIFACT recomendado</small><div class="nombre">${esc(d.plan)}</div>
+          <ul>${PLANES[d.plan].map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
+        <div class="giro"><b>${esc(g.texto)}</b><ul style="margin:6px 0 0;padding-left:20px">${g.puntos.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
+        ${g.honesto ? `<div class="giro honesto"><b>Lo que debes saber</b>${esc(g.honesto)}</div>` : ''}
+        <div class="ruta30"><h3>Tu primer mes</h3><ol>
+          <li><small>Semana 1</small>Nos pasas tu Excel y cargamos tus clientes y productos.</li>
+          <li><small>Semana 1</small>Tu primera factura al SRI la hacemos juntos.</li>
+          <li><small>Semanas 2 y 3</small>${d.plan === 'Distribuidora' ? 'Primer cuadre de ruta con el sistema.' : d.plan === 'Factura' ? 'Facturas solo, sin límite.' : 'Tu bodega y tu cartera al día.'}</li>
+          <li><small>Semana 4</small>${d.plan === 'Factura' ? 'Revisamos juntos qué más te sirve.' : 'Tu primer cierre con utilidad real.'}</li>
+        </ol></div>
+      </div>
+    </div>
+    <div class="cierre">
+      <div><h3>${urgente ? 'Te mostramos tu negocio funcionando' : 'Cuando quieras, te lo mostramos'}</h3>
+        <p>Envíanos tu diagnóstico por WhatsApp. Con tu Excel te armamos tu negocio en CODIFACT, con tus propios números.</p></div>
+      <button class="boton" type="button" id="enviar">Enviar por WhatsApp <span aria-hidden="true">→</span></button>
+    </div>
+    <div id="copia"></div>
+    <div class="pie"><span>Facturas ilimitadas · Nos traemos tus datos · Pagas solo lo que usas</span><button type="button" id="rehacer">Hacer el diagnóstico otra vez</button></div>`;
+  mostrar('p-resultado');
+  requestAnimationFrame(() => setTimeout(() => { $('res-areas').innerHTML = barras(d.areas); }, 60));
+  const msg = textoWhatsApp(d, datos);
+  $('enviar').addEventListener('click', async () => {
+    if (WHATSAPP) { window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`; return; }
+    // Sin número todavía: se copia el mensaje para pegarlo en el chat.
+    let ok = false; try { await navigator.clipboard.writeText(msg); ok = true; } catch {}
+    $('copia').innerHTML = `<p class="notas">${ok ? 'Copiamos tu mensaje. Pégalo en el WhatsApp de CODIFACT:' : 'Copia este mensaje y pégalo en el WhatsApp de CODIFACT:'} <b>[número pendiente]</b></p><textarea class="mensaje" readonly>${esc(msg)}</textarea>`;
+  });
+  $('rehacer').addEventListener('click', () => { for (const k in resp) delete resp[k]; $('arranque-ops').querySelectorAll('.opcion').forEach(b => b.setAttribute('aria-pressed', 'false')); $('paso').textContent = 'Diagnóstico gratis · 2 minutos'; mostrar('p-portada'); });
+}
+</script>
+</body>
+</html>

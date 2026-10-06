@@ -1,0 +1,849 @@
+<title>Arma tu CODIFACT</title>
+<meta name="description" content="Factura al SRI, carga el camión y cuadra la ruta en una sola app. Respondes qué hace tu negocio y se activan solo los módulos que vas a usar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Martian+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: página oscura de una sola columna que se vuelve el producto. Titular de rotulación de bodega a todo el ancho;
+   debajo, la pantalla real anotada como un plano. El configurador replica el menú real de CODIFACT (claro, como la app)
+   puesto sobre la noche: lo único iluminado de la página es el sistema. Nada de pastillas, etiquetas espaciadas ni maquetas. */
+:root {
+  --noche: #f1f2ec;        /* fondo: papel */
+  --noche-2: #fbfbf8;      /* hojas y paneles */
+  --hueso: #14201a;        /* texto: tinta */
+  --gris: #55615a;         /* texto secundario */
+  --verde: #1d5b43;        /* verde billete */
+  --verde-hondo: #1d5b43;
+  --raya: rgba(20, 32, 26, .13);
+  --alerta: #a4501c;
+  /* la réplica de la app (clara, como el sistema real) */
+  --app-fondo: #f5f7f4;
+  --app-hoja: #ffffff;
+  --app-tinta: #14201a;
+  --app-gris: #5d6a63;
+  --app-raya: #e1e6e1;
+  --app-suave: #e3efe8;
+  --rotulo: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --cuerpo: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Martian Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--noche); color: var(--hueso); font: 400 17px/1.58 var(--cuerpo); padding-inline: 16px; overflow-x: hidden; }
+.ancho { max-width: 1320px; margin-inline: auto; }
+a { color: inherit; }
+p { margin: 0; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--verde); outline-offset: 4px; }
+.cifra { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+section[id], #app, #oferta { scroll-margin-top: 90px; }
+
+/* ── barra ── */
+.barra { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-inline: -16px; padding-inline: 16px;
+  background: color-mix(in srgb, var(--noche) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--raya); }
+.barra .ancho { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 12px; }
+.logo { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.logo svg { width: 54px; height: 54px; color: var(--verde); flex: none; }
+.logo b { display: block; font: 900 2rem/.9 var(--rotulo); letter-spacing: .05em; text-transform: uppercase; }
+.logo small { display: block; font: 400 .7rem/1.4 var(--mono); color: var(--gris); margin-top: 3px; }
+.enlaces { display: flex; gap: 26px; align-items: center; font-size: .95rem; }
+.enlaces a { text-decoration: none; color: var(--gris); transition: color .2s; }
+.enlaces a:hover { color: var(--hueso); }
+.boton { text-decoration: none; border: 0; background: var(--verde); color: #f6f7f2; font-weight: 600; padding: 15px 22px; display: inline-flex; gap: 12px; align-items: center; transition: background .2s; }
+.boton:hover { background: var(--hueso); color: #f6f7f2; }
+.boton i { font-style: normal; transition: transform .2s; } .boton:hover i { transform: translateX(5px); }
+.enlaces .boton { padding: 11px 16px; color: #f6f7f2; }
+.subrayado { color: var(--hueso); text-decoration: none; border-bottom: 1px solid var(--verde); padding-bottom: 3px; }
+.subrayado:hover { color: var(--verde); }
+@media (max-width: 860px) { .enlaces a:not(.boton) { display: none; } }
+@media (max-width: 480px) { .logo svg { width: 42px; height: 42px; } .logo b { font-size: 1.6rem; } .logo small { display: none; } }
+
+/* ── portada ── */
+.portada { padding-block: clamp(18px, 2.4vw, 30px) 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 40px; align-items: end; }
+.portada > div:first-child { max-width: 760px; }
+@media (max-width: 860px) { .portada { grid-template-columns: 1fr; } }
+.portada .para { color: var(--verde); font-weight: 600; font-size: 1rem; }
+h1 { font-family: var(--rotulo); font-weight: 800; text-transform: uppercase; line-height: 1; font-size: clamp(1.9rem, 3.3vw, 3.1rem); margin-top: 6px; }
+h1 .linea { display: block; animation: sube .8s cubic-bezier(.2,.8,.2,1) both; }
+h1 .linea { display: inline; } h1 .linea.verde { color: var(--verde); animation-delay: .25s; }
+@keyframes sube { from { transform: translateY(30%); opacity: 0; } to { transform: none; opacity: 1; } }
+.bajo p { color: var(--gris); font-size: 1.02rem; margin-top: 10px; max-width: 46em; }
+.bajo p b { color: var(--hueso); font-weight: 500; }
+.acciones { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+@media (max-width: 860px) { .acciones { justify-content: flex-start; gap: 16px; } .portada .bajo { display: none; } .portada .para { font-size: .88rem; } .portada .acciones .boton { padding: 13px 18px; } .portada .acciones { flex-direction: row-reverse; justify-content: flex-end; } }
+
+/* el plano: la pantalla real a sangre, anotada */
+.plano { box-shadow: inset 0 1px 0 var(--raya); position: relative; margin-top: clamp(18px, 2vw, 26px); margin-inline: -16px; height: clamp(360px, 64vh, 680px); overflow: hidden; border-block: 1px solid var(--raya); background: var(--noche-2); }
+.lienzo { position: absolute; left: 50%; top: 0; width: max(1320px, 112%); aspect-ratio: 2100 / 800; transform: translateX(-50%); animation: paneo 26s ease-in-out infinite alternate; }
+@keyframes paneo { from { transform: translateX(-46%); } to { transform: translateX(-54%) translateY(-4%); } }
+.lienzo img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.plano::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(var(--noche) 0, transparent 12%, transparent 80%, var(--noche) 100%), linear-gradient(90deg, var(--noche) 0, transparent 9%, transparent 91%, var(--noche) 100%); }
+.marca { position: absolute; width: 34px; height: 34px; border-radius: 50%; translate: -50% -50%; display: grid; place-items: center;
+  font: 500 .8rem/1 var(--mono); color: var(--noche); background: var(--hueso); border: 2px solid var(--noche); z-index: 2; transition: background .3s, scale .3s; }
+.marca::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; border: 1.5px solid var(--verde); opacity: 0; }
+.marca.activa { background: var(--verde); scale: 1.12; }
+.marca.activa::after { animation: onda 1.6s ease-out infinite; }
+@keyframes onda { from { opacity: .9; inset: -4px; } to { opacity: 0; inset: -22px; } }
+.aviso { position: absolute; z-index: 3; display: flex; gap: 12px; align-items: center; padding: 12px 16px; max-width: 300px;
+  background: rgba(11,15,13,.92); border: 1px solid var(--raya); border-left: 3px solid #34b27b; backdrop-filter: blur(6px);
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8); animation: aparece .6s cubic-bezier(.2,1.4,.4,1) both; }
+.aviso .ico { flex: none; width: 30px; height: 30px; display: grid; place-items: center; background: rgba(52,178,123,.18); color: #4fc48a; font: 500 .85rem/1 var(--mono); }
+.aviso { color: #ecefe9; } .aviso b { display: block; font-weight: 600; font-size: .92rem; } .aviso small { display: block; color: #a9b4ae; font-size: .8rem; }
+.aviso .c { font-family: var(--mono); color: #ecefe9; }
+.aviso.v1 { left: 4%; top: 14%; animation-delay: 1.1s; }
+.aviso.v2 { right: 4%; top: 11%; animation-delay: 1.8s; }
+.aviso.v3 { left: 8%; bottom: 14%; animation-delay: 2.5s; }
+.aviso.v4 { right: 6%; bottom: 12%; animation-delay: 3.2s; background: #34b27b; border-color: #34b27b; color: #0b0f0d; }
+.aviso.v4 .ico { background: rgba(11,15,13,.15); color: #0b0f0d; } .aviso.v4 small, .aviso.v4 .c { color: #0b0f0d; }
+.aviso.v4 .c { font-size: 1.12rem; font-weight: 500; }
+@keyframes aparece { from { transform: translateY(16px) scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+.girando { width: 14px; height: 14px; border: 2px solid #4fc48a; border-right-color: transparent; border-radius: 50%; animation: gira .7s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+@media (max-width: 700px) { .aviso { max-width: 210px; padding: 9px 11px; } .aviso.v1, .aviso.v3 { display: none; } .aviso b { font-size: .82rem; } }
+
+/* lo que te llevas */
+.llevas { padding-block: 26px 6px; }
+.llevas-tit { font: 800 1.2rem/1 var(--rotulo); text-transform: uppercase; color: var(--verde); margin-bottom: 14px; }
+.llevas ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 2px solid var(--hueso); }
+.llevas li { padding: 16px 16px 4px 0; display: grid; gap: 4px; align-content: start; }
+.llevas li + li { padding-left: 16px; border-left: 1px solid var(--raya); }
+.llevas b { font-weight: 700; font-size: 1.02rem; }
+.llevas b::before { content: "✓ "; color: var(--verde); }
+.llevas span { color: var(--gris); font-size: .88rem; }
+@media (max-width: 960px) { .llevas ul { grid-template-columns: 1fr 1fr; } .llevas li + li { border-left: 0; padding-left: 0; } }
+@media (max-width: 480px) { .llevas ul { grid-template-columns: 1fr; } }
+
+/* cifras del caso, como leyenda del plano */
+.cifras { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--raya); }
+.cifras > div { padding: 22px 20px 20px; border-left: 1px solid var(--raya); display: grid; gap: 4px; align-content: start; }
+.cifras > div:first-child { border-left: 0; padding-left: 0; }
+.cifras b { font: 800 clamp(2rem, 3.4vw, 2.9rem)/1 var(--rotulo); font-variant-numeric: tabular-nums; }
+.cifras b em { font-style: normal; color: var(--verde); }
+.cifras > div > span { color: var(--gris); font-size: .92rem; }
+.nota-cifras { font: 400 .74rem/1.5 var(--mono); color: var(--gris); padding-top: 12px; }
+@media (max-width: 860px) { .cifras { grid-template-columns: 1fr 1fr; } .cifras > div:nth-child(3) { border-left: 0; padding-left: 0; } .cifras > div:nth-child(n+3) { border-top: 1px solid var(--raya); } }
+
+/* la franja: dos barras, sin cifras del negocio */
+.golpe { padding-block: clamp(64px, 9vw, 110px) 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 32px 56px; align-items: center; }
+.golpe-txt h2 { font: 800 clamp(1.9rem, 3.2vw, 2.9rem)/1 var(--rotulo); text-transform: uppercase; }
+.golpe-txt h2 em { font-style: normal; color: var(--verde); }
+.golpe-txt p { color: var(--gris); margin-top: 14px; max-width: 40em; }
+.barras { display: grid; gap: 14px; position: relative; }
+.barra-g { display: grid; gap: 6px; }
+.barra-g .etq { font: 400 .74rem/1.3 var(--mono); color: var(--gris); }
+.barra-g i { display: block; height: 46px; background: var(--raya); transform-origin: left; animation: crece 1.1s cubic-bezier(.2,.8,.2,1) both; }
+.barra-g.antes i { width: 100%; background: repeating-linear-gradient(-45deg, rgba(164,80,28,.55) 0 10px, rgba(164,80,28,.2) 10px 20px); }
+.barra-g.real i { width: 34%; background: var(--verde); animation-delay: .35s; }
+@keyframes crece { from { transform: scaleX(.12); } to { transform: scaleX(1); } }
+.golpe:not(.visto) .barra-g i { animation-play-state: paused; }
+.hueco { margin-left: 34%; border-top: 1.5px dashed var(--alerta); padding-top: 8px; }
+.hueco span { font-weight: 600; color: var(--alerta); font-size: .95rem; }
+.nota-barras { font: 400 .7rem/1.4 var(--mono); color: var(--gris); }
+@media (max-width: 860px) { .golpe { grid-template-columns: 1fr; } }
+
+/* ── bloques ── */
+.bloque { padding-block: clamp(64px, 9vw, 120px) 0; }
+.cabeza { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 20px 48px; align-items: end; margin-bottom: 36px; }
+.cabeza h2 { font: 800 clamp(1.9rem, 3.2vw, 2.9rem)/1 var(--rotulo); text-transform: uppercase; }
+.cabeza h2 em { font-style: normal; color: var(--verde); }
+.cabeza p { color: var(--gris); font-size: 1.05rem; }
+@media (max-width: 860px) { .cabeza { grid-template-columns: 1fr; } }
+
+/* cómo funciona: los cinco pasos del ciclo */
+.ciclo { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--raya); }
+.ciclo li { padding: 22px 18px 6px 0; display: grid; gap: 8px; align-content: start; position: relative; }
+.ciclo li + li { padding-left: 18px; border-left: 1px solid var(--raya); }
+.ciclo .paso { font: 800 3.2rem/1 var(--rotulo); color: var(--verde); }
+.ciclo h3 { font-size: 1.12rem; font-weight: 700; }
+.ciclo p { color: var(--gris); font-size: .93rem; }
+.ciclo .mod { font: 400 .72rem/1.4 var(--mono); color: var(--hueso); opacity: .7; margin-top: 4px; }
+.ciclo .dia { font: 400 .72rem/1.4 var(--mono); color: var(--alerta); }
+@media (max-width: 960px) { .ciclo { grid-template-columns: 1fr; } .ciclo li + li { border-left: 0; padding-left: 0; border-top: 1px solid var(--raya); } .ciclo li { grid-template-columns: 70px 1fr; } .ciclo li > *:not(.paso) { grid-column: 2; } .ciclo .paso { grid-row: 1 / span 4; } }
+
+/* ── configurador ── */
+.config { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.config > .app { position: sticky; top: calc(96px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 1000px) { .config { grid-template-columns: 1fr; } .config > .app { position: static; } }
+.tablero-preguntas { border: 1px solid var(--raya); background: var(--noche-2); }
+.tablero-preguntas h3 { font: 800 1.5rem/1 var(--rotulo); text-transform: uppercase; padding: 18px 18px 6px; }
+.atajos { display: flex; flex-wrap: wrap; border-block: 1px solid var(--raya); margin-top: 10px; }
+.atajos button { flex: 1 1 auto; background: transparent; border: 0; border-left: 1px solid var(--raya); color: var(--gris); padding: 11px 10px; font-size: .86rem; font-weight: 600; transition: color .2s, background .2s; }
+.atajos button:first-child { border-left: 0; }
+.atajos button:hover { color: var(--hueso); }
+.atajos button[aria-pressed="true"] { background: var(--verde); color: #f6f7f2; }
+.q { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--raya); }
+.q:first-child { border-top: 0; }
+.q label { font-size: .95rem; font-weight: 600; cursor: pointer; }
+.q label small { display: block; font: 400 .72rem/1.5 var(--mono); color: var(--gris); margin-top: 3px; }
+.interruptor { position: relative; width: 52px; height: 28px; flex: none; }
+.interruptor input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.interruptor span { position: absolute; inset: 0; border: 1.5px solid var(--gris); transition: border-color .2s, background .2s; pointer-events: none; }
+.interruptor span::after { content: ""; position: absolute; top: 4px; left: 4px; width: 17px; height: 17px; background: var(--gris); transition: transform .2s, background .2s; }
+.interruptor input:checked + span { border-color: var(--verde); background: rgba(29,91,67,.12); }
+.interruptor input:checked + span::after { transform: translateX(23px); background: var(--verde); }
+.interruptor input:disabled { cursor: default; }
+.interruptor input:focus-visible + span { outline: 2px solid var(--verde); outline-offset: 3px; }
+.nota-dep { margin: 0 18px 16px; padding: 10px 12px; border-left: 3px solid var(--alerta); background: rgba(230,161,92,.08); color: var(--hueso); font-size: .86rem; }
+
+.oferta { border: 1px solid var(--raya); background: var(--noche-2); padding: 18px; display: grid; gap: 12px; margin-top: 16px; }
+.oferta h3 { font: 800 1.5rem/1 var(--rotulo); text-transform: uppercase; }
+.lineas { list-style: none; margin: 0; padding: 0; display: grid; }
+.lineas li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; border-top: 1px solid var(--raya); font-size: .92rem; }
+.lineas li small { display: block; color: var(--gris); font-size: .78rem; }
+.lineas li.nueva { animation: entra-l .5s ease-out; }
+@keyframes entra-l { from { background: rgba(52,178,123,.18); } to { background: transparent; } }
+.precio { font: 400 .8rem/1.4 var(--mono); text-align: right; white-space: nowrap; }
+.precio.pend { color: var(--gris); font-family: var(--cuerpo); }
+.total { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 12px; padding-top: 12px; border-top: 2px solid var(--hueso); }
+.total .cifra { font-size: 1.2rem; }
+.total .pend { color: var(--gris); font-family: var(--cuerpo); font-size: .95rem; }
+.oferta .acciones { justify-content: flex-start; }
+.item.activa { background: rgba(29, 91, 67, .07); }
+.copiado { font-size: .84rem; color: var(--verde); }
+.perfil { color: var(--gris); font-size: .92rem; margin-top: -4px; }
+.perfil b { color: var(--hueso); font-weight: 600; }
+.dejas { border-top: 1px solid var(--raya); padding-top: 12px; }
+.dejas > b { font: 800 1.15rem/1 var(--rotulo); text-transform: uppercase; color: var(--verde); }
+.dejas ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.dejas li { font-size: .92rem; color: var(--hueso); padding-left: 22px; position: relative; text-decoration: line-through; text-decoration-color: rgba(52,178,123,.75); text-decoration-thickness: 2px; }
+.dejas li::before { content: "×"; position: absolute; left: 2px; color: var(--verde); }
+.dejas li.nueva { animation: entra-l .6s ease-out; }
+.cierre-oferta { display: grid; gap: 12px; justify-items: start; padding-top: 6px; }
+.boton.grande { width: 100%; justify-content: space-between; font-size: 1.08rem; padding: 18px 22px; }
+.boton-texto { background: none; border: 0; border-bottom: 1px solid var(--verde); color: var(--hueso); padding: 0 0 3px; font-size: .92rem; }
+.boton-texto:hover { color: var(--verde); }
+.despues { list-style: none; margin: 0; padding: 14px 0 0; border-top: 1px solid var(--raya); display: grid; gap: 10px; counter-reset: d; }
+.despues li { counter-increment: d; display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: .88rem; color: var(--gris); }
+.despues li::before { content: counter(d); width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid var(--verde); color: var(--verde); font: 400 .72rem/1 var(--mono); }
+.despues b { color: var(--hueso); font-weight: 600; }
+.texto-copia { width: 100%; min-height: 120px; font: .8rem/1.5 var(--mono); padding: 10px; border: 1px solid var(--raya); background: var(--noche); color: var(--hueso); }
+details.duenio { border-top: 1px solid var(--raya); padding-top: 10px; font-size: .86rem; }
+details.duenio summary { cursor: pointer; color: var(--gris); }
+.precios { display: grid; gap: 8px; margin-top: 10px; }
+.precios label { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 10px; align-items: center; color: var(--gris); }
+.precios input, .precios select { width: 100%; font: .82rem var(--mono); padding: 6px 8px; border: 1px solid var(--raya); background: var(--noche); color: var(--hueso); }
+
+/* la réplica de la app: clara, como el sistema real */
+.app { display: grid; grid-template-columns: 210px minmax(0, 1fr); background: var(--app-fondo); color: var(--app-tinta); border: 1px solid var(--raya); box-shadow: 0 40px 80px -50px rgba(20,32,26,.45); outline: 1px solid rgba(29,91,67,.25); outline-offset: 6px; }
+.lado { border-right: 1px solid var(--app-raya); background: var(--app-hoja); max-height: min(740px, calc(100vh - 120px)); overflow-y: auto; }
+.lado .marca-app { display: flex; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid var(--app-raya); }
+.lado .marca-app svg { width: 30px; height: 30px; color: var(--verde-hondo); flex: none; }
+.lado .marca-app b { display: block; font: 800 .88rem/1.1 var(--cuerpo); letter-spacing: .06em; }
+.lado .marca-app small { font-size: .64rem; color: var(--app-gris); font-weight: 600; }
+.lado .sec { font: 700 .66rem/1 var(--cuerpo); letter-spacing: .1em; text-transform: uppercase; color: var(--app-gris); padding: 16px 16px 6px; }
+.item { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; border: 0; background: none; color: var(--app-tinta); font-size: .85rem; font-weight: 600; padding: 7px 12px 7px 16px; }
+.item:hover { background: var(--app-fondo); }
+.item .punto { width: 7px; height: 7px; background: var(--app-gris); flex: none; }
+.item.on { background: var(--app-suave); color: var(--verde-hondo); box-shadow: inset 3px 0 0 var(--verde-hondo); }
+.item.on .punto { background: var(--verde-hondo); }
+.item.cerrada { color: #a3aea8; }
+.item.cerrada .punto { display: none; }
+.item .candado { width: 12px; height: 12px; flex: none; display: none; }
+.item.cerrada .candado { display: block; }
+.item.recien { animation: destello 1.3s ease; }
+@keyframes destello { 0% { background: #c5ebd6; } 100% { background: transparent; } }
+.principal { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.principal .hd { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--app-raya); background: var(--app-hoja); flex-wrap: wrap; }
+.principal .hd small { display: block; font: 700 .64rem/1 var(--cuerpo); letter-spacing: .1em; text-transform: uppercase; color: var(--app-gris); }
+.principal .hd b { font-size: 1.05rem; font-weight: 800; }
+.estado { margin-left: auto; font: 500 .72rem/1 var(--mono); padding: 6px 10px; }
+.estado.si { background: var(--app-suave); color: var(--verde-hondo); }
+.estado.no { background: #eceeec; color: var(--app-gris); }
+.vista { padding: 16px; min-width: 0; }
+.toma { position: relative; overflow: hidden; border: 1px solid var(--app-raya); aspect-ratio: 1780 / 1170; width: 100%; max-width: 100%; display: block; padding: 0; background: var(--app-hoja); cursor: zoom-in; }
+.toma img { display: block; width: 117.98%; max-width: none; margin-left: -17.98%; margin-top: -4.494%; height: auto; animation: llega .45s ease-out; }
+@keyframes llega { from { opacity: .3; transform: scale(1.015); } to { opacity: 1; transform: none; } }
+.toma .pie-toma { position: absolute; left: 10px; bottom: 10px; font: 400 .68rem/1 var(--mono); background: rgba(20,32,26,.85); color: #fff; padding: 6px 8px; }
+.ficha { border: 1px dashed #c9d1cb; padding: clamp(20px, 4vw, 40px); background: var(--app-hoja); display: grid; gap: 12px; align-content: start; min-height: 320px; }
+.ficha .ic { width: 44px; height: 44px; display: grid; place-items: center; background: #eceeec; color: var(--app-gris); }
+.ficha .ic.si { background: var(--app-suave); color: var(--verde-hondo); }
+.ficha h3 { font: 800 1.9rem/1 var(--rotulo); text-transform: uppercase; }
+.ficha p { color: var(--app-gris); max-width: 40em; }
+.ficha .incluye { font-size: .88rem; }
+.ficha .agregar { justify-self: start; background: var(--verde-hondo); color: #fff; border: 0; padding: 12px 18px; font-weight: 600; }
+.ficha .agregar:hover { background: var(--app-tinta); }
+@media (max-width: 760px) { .app { grid-template-columns: 1fr; } .lado { max-height: 240px; border-right: 0; border-bottom: 1px solid var(--app-raya); } }
+dialog.lupa { border: 0; padding: 0; background: transparent; max-width: min(96vw, 1500px); width: 100%; }
+dialog.lupa::backdrop { background: rgba(5,8,7,.88); }
+dialog.lupa img { display: block; width: 100%; height: auto; }
+dialog.lupa .cerrar { position: absolute; top: 10px; right: 10px; border: 0; background: #0b0f0d; color: #ecefe9; padding: 8px 14px; }
+
+.pasos-movil { display: none; padding: 18px; gap: 14px; }
+.avance { display: flex; align-items: center; gap: 12px; font: 400 .74rem/1 var(--mono); color: var(--gris); }
+.barrita { flex: 1; height: 3px; background: var(--raya); } .barrita i { display: block; height: 100%; background: var(--verde); transition: width .35s; }
+.pm-preg { font: 800 1.9rem/1.02 var(--rotulo); text-transform: uppercase; min-height: 2.1em; animation: llega .35s ease-out; }
+.pm-sub { color: var(--gris); font-size: .9rem; margin-top: -6px; }
+.pm-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pm-botones .boton { justify-content: center; font-size: 1.05rem; }
+.boton-no { background: transparent; border: 1.5px solid var(--gris); color: var(--hueso); font-weight: 600; font-size: 1.05rem; padding: 15px 22px; }
+.pm-listo { display: grid; gap: 12px; }
+.pm-listo b { font: 800 1.9rem/1.02 var(--rotulo); text-transform: uppercase; }
+.pm-listo b em { font-style: normal; color: var(--verde); }
+@media (max-width: 760px) { #preguntas-lista { display: none; } .pasos-movil { display: grid; } }
+
+/* barra fija en celular: el plan siempre a mano */
+.barra-plan { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: none; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--noche-2); border-top: 1px solid var(--verde); transform: translateY(110%); transition: transform .3s; }
+.barra-plan.visible { transform: none; }
+.barra-plan span { font-size: .9rem; } .barra-plan b { color: var(--verde); }
+.barra-plan .boton { padding: 12px 16px; }
+@media (max-width: 760px) { .barra-plan { display: flex; } }
+
+/* ── caso real ── */
+.caso { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+.caso .relato { display: grid; gap: 16px; }
+.caso .relato p { color: var(--gris); font-size: 1.04rem; max-width: 36em; }
+.caso .relato p b { color: var(--hueso); font-weight: 500; }
+.hechos { list-style: none; margin: 0; padding: 0; display: grid; }
+.hechos li { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 16px; padding: 16px 0; border-top: 1px solid var(--raya); }
+.hechos li:last-child { border-bottom: 1px solid var(--raya); }
+.hechos time { font: 400 .78rem/1.5 var(--mono); color: var(--verde); padding-top: 2px; }
+@media (max-width: 860px) { .caso { grid-template-columns: 1fr; } .hechos li { grid-template-columns: 1fr; gap: 2px; } }
+
+/* ── tus datos ── */
+.datos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--raya); }
+.datos > div { padding: 24px; display: grid; gap: 10px; align-content: start; }
+.datos > div + div { border-left: 1px solid var(--raya); }
+.datos h3 { font: 800 1.6rem/1 var(--rotulo); text-transform: uppercase; }
+.datos p { color: var(--gris); }
+.columnas { overflow-x: auto; }
+.columnas table { border-collapse: collapse; width: 100%; font: .8rem/1.4 var(--mono); }
+.columnas th, .columnas td { border-bottom: 1px solid var(--raya); padding: 8px 10px 8px 0; text-align: left; white-space: nowrap; }
+.columnas th { color: var(--verde); font-weight: 500; }
+@media (max-width: 860px) { .datos { grid-template-columns: 1fr; } .datos > div + div { border-left: 0; border-top: 1px solid var(--raya); } }
+
+/* ── requisitos ── */
+.requisitos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--raya); }
+.requisitos > div { padding: 22px 22px 22px 0; border-bottom: 1px solid var(--raya); display: grid; gap: 6px; align-content: start; }
+.requisitos > div:not(:nth-child(3n+1)) { padding-left: 22px; border-left: 1px solid var(--raya); }
+.requisitos h3 { font-size: 1.05rem; font-weight: 700; }
+.requisitos p { color: var(--gris); font-size: .93rem; }
+@media (max-width: 860px) { .requisitos { grid-template-columns: 1fr; } .requisitos > div:not(:nth-child(3n+1)) { padding-left: 0; border-left: 0; } }
+
+/* ── preguntas ── */
+.preguntas { max-width: 900px; }
+.preguntas details { border-top: 1px solid var(--raya); padding: 18px 0; }
+.preguntas details:last-child { border-bottom: 1px solid var(--raya); }
+.preguntas summary { cursor: pointer; list-style: none; display: block; position: relative; padding-right: 36px; font-weight: 600; font-size: 1.06rem; }
+.preguntas summary::-webkit-details-marker { display: none; }
+.preguntas summary::after { content: "+"; position: absolute; right: 4px; top: 2px; font: 400 1.3rem/1 var(--mono); color: var(--verde); transition: transform .2s; }
+.preguntas details[open] summary::after { transform: rotate(45deg); }
+.preguntas p { color: var(--gris); margin-top: 10px; max-width: 48em; }
+
+/* ── cierre ── */
+.cierre { padding-block: clamp(80px, 11vw, 140px) 0; display: grid; gap: 24px; }
+.cierre h2 { font: 800 clamp(2rem, 4vw, 3.4rem)/1 var(--rotulo); text-transform: uppercase; }
+.cierre h2 em { font-style: normal; color: var(--verde); }
+footer { margin-top: clamp(64px, 9vw, 110px); border-top: 1px solid var(--raya); padding-block: 26px 40px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; font: 400 .74rem/1.6 var(--mono); color: var(--gris); }
+
+/* al bajar: los bloques ya se ven; solo se acomodan */
+.sube { transition: transform .7s cubic-bezier(.2,.7,.2,1); }
+.sube.espera { transform: translateY(22px); }
+@media (prefers-reduced-motion: reduce) { .golpe .barra-g i { animation: none !important; } html { scroll-behavior: auto; } *, *::after { animation: none !important; transition: none !important; } .sube.espera { transform: none; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="isotipo" viewBox="0 0 128 128">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 97.7 35.7 A 44 44 0 1 0 97.7 92.3" stroke-width="7"/><path d="M 78.9 42.7 A 26 26 0 1 0 78.9 85.3" stroke-width="6"/><path d="M 40 86 L 56 66 L 66 76 L 96 42" stroke-width="7"/>
+      </g>
+      <path d="M 104 34 L 89.4 39.6 L 98.6 49.4 Z" fill="currentColor"/>
+      <g fill="currentColor"><circle cx="49.6" cy="94.8" r="2.9"/><circle cx="58.1" cy="97.5" r="2.9"/><circle cx="67.0" cy="97.9" r="2.9"/><circle cx="75.6" cy="95.9" r="2.9"/></g>
+    </symbol>
+    <symbol id="candado" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></symbol>
+    <symbol id="visto" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="barra">
+  <div class="ancho">
+    <a class="logo" href="#inicio" aria-label="CODIFACT by Código Fantasma, inicio"><svg aria-hidden="true"><use href="#isotipo"/></svg><span><b>CODIFACT</b><small>by Código Fantasma</small></span></a>
+    <nav class="enlaces" aria-label="Secciones">
+      <a href="#como">Cómo funciona</a><a href="#arma">Arma el tuyo</a><a href="#caso">Caso real</a><a href="#preguntas">Preguntas</a>
+      <a class="boton" href="#arma">Arma tu CODIFACT</a>
+    </nav>
+  </div>
+</header>
+
+<main id="inicio">
+  <section class="portada ancho">
+    <div>
+    <p class="para">Para distribuidoras, mayoristas y negocios con bodega en Ecuador</p>
+    <h1><span class="linea">Controla tu negocio. Factura al SRI, lleva tu bodega, tu cartera y tu ruta,</span> <span class="linea verde">y sabe cuánto ganas de verdad.</span></h1>
+    <div class="bajo"><p>El sistema que nació dentro de una distribuidora de Ecuador y la maneja todos los días.</p></div>
+    </div>
+      <div class="acciones">
+        <a class="subrayado" href="#datos">Trae tus bases de datos actuales</a>
+        <a class="boton" href="#arma">Arma tu CODIFACT <i>→</i></a>
+      </div>
+  </section>
+
+  <section class="plano" aria-label="Pantalla real de CODIFACT con datos de ejemplo">
+    <div class="lienzo">
+      <img src="img/tablero-verde.png" alt="Tablero de CODIFACT con datos de ejemplo" width="2100" height="800">
+    </div>
+    <div class="aviso v1"><span class="ico">↓</span><div><b>Compra cargada del XML</b><small>Stock actualizado · 11 productos</small></div></div>
+    <div class="aviso v2"><span class="ico" id="a-ico"><span class="girando"></span></span><div><b id="a-txt">Enviando al SRI…</b><small class="c" id="a-num">001-001-000001248</small></div></div>
+    <div class="aviso v3"><span class="ico">$</span><div><b>Tienda Doña Rosa abonó <span class="c">$120</span></b><small>Le quedan <span class="c">$85</span> por pagar</small></div></div>
+    <div class="aviso v4"><span class="ico">=</span><div><b>Utilidad real de julio</b><small class="c">$7.468,71</small></div></div>
+  </section>
+
+  <section class="ancho llevas" aria-label="Lo que te llevas">
+    <p class="llevas-tit">Lo que te llevas</p>
+    <ul>
+      <li><b>Facturas ilimitadas</b><span>No cobramos por comprobante.</span></li>
+      <li><b>Tus datos migrados</b><span>Cargamos tus clientes, productos y numeración.</span></li>
+      <li><b>Pagas solo lo que usas</b><span>Activas módulos cuando tu negocio los pide.</span></li>
+      <li><b>Primera factura acompañada</b><span>Arrancas con nosotros al lado.</span></li>
+      <li><b>Probado en la calle</b><span>185 de 185 facturas autorizadas en un mes, en una distribuidora real.</span></li>
+    </ul>
+  </section>
+
+  <section class="ancho" aria-label="Cifras del caso real">
+    <div class="cifras">
+      <div><b><em class="contar" data-a="185">185</em>/185</b><span>facturas autorizadas por el SRI en un mes</span></div>
+      <div><b class="contar" data-a="565">565</b><span>comprobantes emitidos en septiembre de 2026</span></div>
+      <div><b>≈ <span class="contar" data-a="1500">1.500</span></b><span>clientes repartidos en 14 rutas</span></div>
+      <div><b class="contar" data-a="1238">1.238</b><span>comprobaciones automáticas de las cuentas antes de cada actualización</span></div>
+    </div>
+    <p class="nota-cifras">Cifras de una distribuidora en Ecuador que usa CODIFACT a diario desde agosto de 2026. Se publican sin identificarla. Pantallas reales con datos de ejemplo.</p>
+  </section>
+
+  <section class="golpe ancho" aria-label="Lo que cuesta no saber">
+    <div class="golpe-txt">
+      <h2>Su tablero decía que ganaba <em>más de $20.000 al mes</em> que la realidad</h2>
+      <p>Pasó en la distribuidora del caso real: su tablero anterior no restaba el costo de la mercadería. CODIFACT le mostró la utilidad de verdad.</p>
+    </div>
+    <div class="barras" aria-hidden="true">
+      <div class="barra-g antes"><span class="etq">Lo que mostraba su tablero</span><i></i></div>
+      <div class="barra-g real"><span class="etq">Lo que de verdad ganaba</span><i></i></div>
+      <div class="hueco"><span>más de $20.000 al mes que no existían</span></div>
+      <p class="nota-barras">Barras ilustrativas: las cifras del negocio no se publican.</p>
+    </div>
+  </section>
+
+  <section class="bloque ancho" id="como">
+    <div class="cabeza">
+      <h2>Del pedido a <em>la utilidad</em></h2>
+      <p>En el orden en que trabaja tu negocio. Un ciclo de dos días: hoy se vende y se factura; mañana sale el camión, se entrega y se cuadra.</p>
+    </div>
+    <ol class="ciclo">
+      <li class="sube"><span class="paso">1</span><span class="dia">Día 1</span><h3>Facturas</h3><p>El pedido se factura en la oficina o desde el iPad. Si no hay stock, la factura no se emite.</p><span class="mod">Facturación</span></li>
+      <li class="sube"><span class="paso">2</span><span class="dia">Día 1</span><h3>El SRI autoriza</h3><p>La computadora de tu oficina firma y envía. Al cliente le llegan la factura impresa en PDF y el XML.</p><span class="mod">Facturación</span></li>
+      <li class="sube"><span class="paso">3</span><span class="dia">Día 2</span><h3>Cargas el camión</h3><p>La hoja de carga suma las pacas de todas las facturas de la ruta. Ningún comprobante sale dos veces.</p><span class="mod">Logística de ruta</span></li>
+      <li class="sube"><span class="paso">4</span><span class="dia">Día 2</span><h3>Cuadras la caja</h3><p>Al volver: billetes, monedas, gastos y devoluciones. El sistema dice la diferencia al centavo.</p><span class="mod">Logística de ruta</span></li>
+      <li class="sube"><span class="paso">5</span><span class="dia">Cada mes</span><h3>Ves tu utilidad</h3><p>Cartera, inventario y tesorería quedan al día, y el estado de resultados usa el costo real.</p><span class="mod">Rentabilidad</span></li>
+    </ol>
+  </section>
+
+  <section class="bloque ancho" id="arma">
+    <div class="cabeza">
+      <h2>Arma tu <em>CODIFACT</em></h2>
+      <p>Responde qué hace tu negocio. Cada respuesta desbloquea pantallas en el menú. Toca cualquier pantalla para verla; las que tienen candado se activan cuando agregas su módulo.</p>
+    </div>
+
+    <div class="config">
+      <div style="min-width:0">
+        <div class="tablero-preguntas">
+          <h3>Tu negocio</h3>
+          <div class="atajos" role="group" aria-label="Respuestas rápidas">
+            <button type="button" data-atajo="base" aria-pressed="false">Solo facturo</button>
+            <button type="button" data-atajo="mayorista" aria-pressed="false">Mayorista</button>
+            <button type="button" data-atajo="ruta" aria-pressed="true">Con rutas</button>
+            <button type="button" data-atajo="todo" aria-pressed="false">Todo</button>
+          </div>
+          <div id="preguntas-lista"></div>
+          <div class="pasos-movil" id="pasos-movil">
+            <div class="avance"><span id="pm-num"></span><span class="barrita"><i id="pm-barra"></i></span></div>
+            <p class="pm-preg" id="pm-preg"></p>
+            <p class="pm-sub" id="pm-sub"></p>
+            <div class="pm-botones"><button type="button" class="boton" id="pm-si">Sí</button><button type="button" class="boton-no" id="pm-no">No</button></div>
+            <button type="button" class="boton-texto" id="pm-atras">Atrás</button>
+          </div>
+          <p class="nota-dep" id="nota-dep" hidden></p>
+        </div>
+
+        <div class="oferta" id="oferta" aria-live="polite">
+          <h3>Tu CODIFACT</h3>
+          <p class="perfil" id="perfil"></p>
+          <ul class="lineas" id="lineas"></ul>
+          <div class="total"><b>Precio</b><span class="cifra" id="total"></span></div>
+          <div class="dejas"><b>Con tu plan dejas de</b><ul id="dejas"></ul></div>
+          <div class="cierre-oferta">
+            <a class="boton grande" id="confirmar" href="#" target="_blank" rel="noopener">Confirmar mi CODIFACT <i>→</i></a>
+            <button class="boton-texto" type="button" id="copiar">Copiar mi selección</button>
+            <span class="copiado" id="copiado" hidden></span>
+          </div>
+          <textarea class="texto-copia" id="texto-copia" readonly hidden aria-label="Resumen de tu selección"></textarea>
+          <ol class="despues">
+            <li><span><b>Nos escribes</b> con tu plan armado. Te respondemos con el precio y la fecha de arranque.</span></li>
+            <li><span><b>Cargamos tus bases de datos</b>: clientes, productos y tu numeración de facturas.</span></li>
+            <li><span><b>Emites tu primera factura</b> con nosotros al lado.</span></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="app" id="app">
+        <nav class="lado" id="lado" aria-label="Menú de tu CODIFACT"></nav>
+        <div class="principal">
+          <div class="hd"><div><small id="hd-sec"></small><b id="hd-tit"></b></div><span class="estado" id="hd-estado"></span></div>
+          <div class="vista" id="vista"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque ancho" id="caso">
+    <div class="caso">
+      <div class="relato">
+        <div class="cabeza" style="grid-template-columns:1fr;margin-bottom:8px"><h2>Nació en <em>la ruta</em></h2></div>
+        <p>CODIFACT se construyó y se probó en una distribuidora de consumo masivo en Ecuador: <b>14 rutas, cerca de 1.500 clientes</b>, la oficina factura por la noche y el camión sale de madrugada.</p>
+        <p>Antes, el tablero de ese negocio mostraba como ganancia casi toda la venta, porque no restaba el costo de la mercadería. <b>La diferencia pasaba de $20.000 en un mes.</b> El estado de resultados de CODIFACT calcula la utilidad con el costo del día de cada venta y avisa cuando faltan gastos o sueldos por registrar.</p>
+      </div>
+      <ul class="hechos">
+        <li class="sube"><time datetime="2026-08-02">2 ago 2026</time><span>Empieza a usarse con los clientes y productos reales del negocio.</span></li>
+        <li class="sube"><time datetime="2026-09-03">3 sep 2026</time><span>Primera factura electrónica autorizada por el SRI, emitida desde CODIFACT.</span></li>
+        <li class="sube"><time datetime="2026-09">Sep 2026</time><span>565 comprobantes en el mes. 185 facturas, todas con su número de autorización.</span></li>
+        <li class="sube"><time datetime="2026-10-05">5 oct 2026</time><span>48 hojas de carga, 45 cuadres de ruta y 3.690 acciones registradas en la bitácora.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="bloque ancho" id="datos">
+    <div class="cabeza">
+      <h2>Trae tus bases de datos <em>actuales</em></h2>
+      <p>No empiezas de cero. Tus clientes y productos pasan a tu nuevo sistema, y tu numeración de facturas continúa donde quedó, sin repetirse ni saltarse.</p>
+    </div>
+    <div class="datos">
+      <div>
+        <h3>El formato ideal</h3>
+        <p>Un Excel (.xlsx) o CSV con una fila de títulos. Si tu archivo viene distinto, igual lo leemos: las columnas se reconocen aunque se llamen diferente.</p>
+        <div class="columnas"><table>
+          <thead><tr><th>Clientes</th><th>Productos</th></tr></thead>
+          <tbody><tr><td>RUC o cédula</td><td>Código</td></tr><tr><td>Nombre</td><td>Nombre</td></tr><tr><td>Correo</td><td>Precio</td></tr><tr><td>Teléfono</td><td>Costo</td></tr><tr><td>Dirección</td><td>Categoría</td></tr></tbody>
+        </table></div>
+      </div>
+      <div>
+        <h3>Cómo se hace</h3>
+        <p>1. Bajas tus listas de clientes y productos de tu sistema actual.</p>
+        <p>2. CODIFACT las lee y te muestra qué entró y qué no, con el motivo. Nada se carga a ciegas.</p>
+        <p>3. Pones el número de tu última factura y la siguiente sale correlativa.</p>
+        <p>4. El stock se carga con tu primer conteo de bodega, para empezar con el número real.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque ancho" id="requisitos">
+    <div class="cabeza"><h2>Lo que necesitas <em>para empezar</em></h2></div>
+    <div class="requisitos">
+      <div class="sube"><h3>Tu firma electrónica</h3><p>El archivo de firma (.p12) vigente de tu negocio. Se queda en tu computadora: no viaja a internet.</p></div>
+      <div class="sube"><h3>Una computadora con Windows</h3><p>Encendida mientras se factura. Es la que firma y habla con el SRI.</p></div>
+      <div class="sube"><h3>Tus datos del SRI</h3><p>RUC, establecimiento, punto de emisión y el número de factura desde el que continúas.</p></div>
+      <div class="sube"><h3>Un correo para enviar facturas</h3><p>La cuenta desde la que tus clientes reciben su factura en PDF y el XML.</p></div>
+      <div class="sube"><h3>Internet en la oficina</h3><p>Y en el iPad, si vas a facturar en la calle.</p></div>
+      <div class="sube"><h3>Tus clientes y productos</h3><p>En Excel o CSV. Los cargamos a tu nuevo sistema.</p></div>
+    </div>
+  </section>
+
+  <section class="bloque ancho" id="preguntas">
+    <div class="cabeza"><h2>Antes de <em>decidir</em></h2></div>
+    <div class="preguntas">
+      <details open><summary>¿Puedo empezar solo con facturación y agregar módulos después?</summary><p>Esa es la idea: empiezas con facturación electrónica y activas inventario, rutas, cartera, beneficios o rentabilidad cuando tu negocio los necesite.</p></details>
+      <details><summary>¿Hay un límite de facturas al mes?</summary><p>No. Las facturas son ilimitadas: no cobramos por comprobante.</p></details>
+      <details><summary>No tengo camión. ¿Me sirve?</summary><p>Sí. La logística de ruta es un módulo aparte. Un mayorista o un comercio con bodega usa facturación, inventario, cartera y rentabilidad sin tocar nada de rutas.</p></details>
+      <details><summary>¿Funciona en iPad?</summary><p>Sí. En el caso real se factura a diario desde un iPad.</p></details>
+      <details><summary>¿Y en el teléfono?</summary><p>Todavía no está comprobado en teléfonos. Hoy se usa en computadora e iPad.</p></details>
+      <details><summary>¿Qué pasa si la computadora que firma está apagada?</summary><p>El SRI pide enviar cada factura en el momento en que se emite, así que esa computadora debe estar encendida mientras facturas. Si se apaga, la factura queda guardada y en cola, y se envía al encenderla.</p></details>
+      <details><summary>¿Puedo borrar un cobro o una factura por error?</summary><p>No. Los registros de dinero no se borran, ni siquiera el administrador: se anulan o se corrigen y queda el rastro. Cada acción sensible queda en la bitácora con quién la hizo y cuándo.</p></details>
+      <details><summary>¿Cuánto tarda la instalación?</summary><p>Todavía no hay un tiempo medido. Depende de cuántos clientes y productos haya que cargar y de tener lista la firma electrónica.</p></details>
+      <details><summary>¿Sirve fuera de Ecuador?</summary><p>No. La facturación electrónica es la del SRI de Ecuador.</p></details>
+    </div>
+  </section>
+
+  <section class="cierre ancho">
+    <h2>Responde qué hace tu negocio.<br><em>CODIFACT hace el resto.</em></h2>
+    <div class="acciones" style="justify-content:flex-start"><a class="boton" href="#arma">Arma tu CODIFACT <i>→</i></a><a class="subrayado" href="#datos">Trae tus bases de datos actuales</a></div>
+  </section>
+
+  <footer class="ancho">
+    <span>CODIFACT by Código Fantasma · Ecuador</span>
+    <span>WhatsApp, correo y precios: por publicar</span>
+  </footer>
+</main>
+
+<div class="barra-plan" id="barra-plan" aria-hidden="true"><span>Tu CODIFACT: <b id="bp-n"></b></span><a class="boton" href="#oferta">Confirmar <i>→</i></a></div>
+
+<dialog class="lupa" id="lupa" aria-label="Captura ampliada"><button type="button" class="cerrar" id="lupa-cerrar">Cerrar</button><img id="lupa-img" alt=""></dialog>
+
+<script>
+(function () {
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ── Portada: las marcas del plano y el aviso del SRI ──
+  const aIco = $('a-ico'), aTxt = $('a-txt'), aNum = $('a-num'); let aN = 1248;
+  function cicloSri() {
+    aIco.innerHTML = '<span class="girando"></span>'; aTxt.textContent = 'Enviando al SRI…';
+    aNum.textContent = '001-001-' + String(aN).padStart(9, '0');
+    setTimeout(() => { aIco.textContent = '✓'; aTxt.textContent = 'Autorizada por el SRI'; aN++; }, 1500);
+  }
+  if (quieto) { aIco.textContent = '✓'; aTxt.textContent = 'Autorizada por el SRI'; }
+  else { setTimeout(() => { cicloSri(); setInterval(cicloSri, 5000); }, 1900); }
+
+  // ── Los módulos que se venden. `requiere` dice qué otro módulo necesita para funcionar.
+  const MODULOS = {
+    base: { nombre: 'Facturación electrónica', siempre: true, desc: 'Factura y nota de crédito al SRI, correo al cliente, clientes, lista de precios, reporte para el contador y auditoría. Facturas ilimitadas.' },
+    inv:  { nombre: 'Inventario y compras', desc: 'Stock que baja al facturar, XML del proveedor que sube el stock, compras por pagar, pedido sugerido, mermas y conteo físico.' },
+    log:  { nombre: 'Logística de ruta', requiere: ['inv'], desc: 'Hoja de carga por ruta, cuadre de caja al volver el camión, sobrantes, autoventa y adelantos al personal.' },
+    car:  { nombre: 'Cartera y tesorería', desc: 'Deudas que nacen solas al vender a crédito, abonos, antigüedad de la cartera, efectivo, banco, préstamos y tarjetas.' },
+    ben:  { nombre: 'Beneficios del proveedor', requiere: ['inv'], desc: 'Bonificaciones y beneficios por volumen: entran al stock sin pagarse y van en su propia línea del resultado.' },
+    ren:  { nombre: 'Rentabilidad y control', requiere: ['inv'], desc: 'Estado de resultados sin IVA, utilidad real, rentabilidad por presentación, BlackShark, metas, gastos y crédito tributario.' }
+  };
+  const ORDEN = ['base', 'inv', 'log', 'car', 'ben', 'ren'];
+  const DEJAS = {
+    base: 'Facturar en un portal y copiar todo a mano a tu Excel',
+    inv: 'Contar la bodega para saber qué te queda',
+    log: 'Cuadrar el camión en un cuaderno al final del día',
+    car: 'Perseguir deudas con una libreta',
+    ben: 'Olvidar bonificaciones que tu proveedor te debe',
+    ren: 'Creer que ganaste lo que vendiste'
+  };
+  const PERFIL = (a) => a.has('log') ? 'distribuidora con rutas' : (a.has('inv') && a.has('car')) ? 'mayorista o comercio con bodega' : a.has('inv') ? 'negocio con bodega' : 'negocio que factura';
+  const POR_QUE = { log: 'la hoja de carga y el cuadre mueven el stock', ben: 'las bonificaciones entran al stock', ren: 'la utilidad se calcula con el costo de cada producto' };
+  const PREGUNTAS = [
+    ['base', '¿Emites facturas electrónicas al SRI?', 'Incluido siempre'],
+    ['inv', '¿Tienes bodega y compras con factura del proveedor?', 'Inventario y compras'],
+    ['log', '¿Repartes en camión por rutas y cuadras la caja al volver?', 'Logística de ruta'],
+    ['car', '¿Vendes a crédito y cobras después?', 'Cartera y tesorería'],
+    ['ben', '¿Tu proveedor te da bonificaciones por volumen?', 'Beneficios del proveedor'],
+    ['ren', '¿Quieres saber cuánto ganas de verdad cada mes?', 'Rentabilidad y control']
+  ];
+  const ATAJOS = { base: ['base'], mayorista: ['base', 'inv', 'car', 'ren'], ruta: ['base', 'inv', 'log', 'car'], todo: ORDEN };
+
+  // ── El menú real de CODIFACT: [pantalla, módulo, captura o null, qué hace]
+  const MENU = [
+    ['Día a día', [
+      ['Facturar', 'base', 'v-facturacion', 'Factura y nota de crédito; estado ante el SRI y correo al cliente.'],
+      ['Hoja de Carga', 'log', 'v-hojacarga', 'Las pacas de todas las facturas de la ruta, listas para cargar.'],
+      ['Cuadre Diario', 'log', 'v-cuadre', 'Lo que debió volver contra lo que volvió, al centavo.'],
+      ['Cuentas x Cobrar', 'car', 'v-cobranzas', 'Deudas, abonos y antigüedad de la cartera.'],
+      ['Tesorería', 'car', 'v-tesoreria', 'Efectivo y banco: lo que entra de cada cuadre, depósitos y pagos, cada movimiento con su explicación.']
+    ]],
+    ['Inventario', [
+      ['Stock & XML', 'inv', 'v-stock', 'El stock al día y la carga del XML del proveedor.'],
+      ['Lista de Precios', 'base', 'v-catalogo', 'Tarifas A, B, C y mayorista por producto. Se guardan sin IVA y se escriben con IVA.'],
+      ['Escalado de Utilidad', 'ren', 'v-escalado', 'Cuánto deja cada producto con cada tarifa y qué pasa si subes un centavo.'],
+      ['Pedido a Proveedor', 'inv', 'v-pedido', 'Sugiere qué pedir según lo vendido y lo que queda en bodega.'],
+      ['Facturas de Compra', 'inv', 'v-compras', 'Lo que compraste, lo que debes al proveedor y lo que llegó de verdad.'],
+      ['Beneficios del Proveedor', 'ben', null, 'Bonificaciones y beneficios por paca del proveedor, en su propia línea del resultado.'],
+      ['Sobrantes de Ruta', 'log', 'v-sobrantes', 'Lo que volvió de la ruta y a dónde fue.']
+    ]],
+    ['Clientes', [
+      ['Completar Clientes', 'base', 'v-completar', 'A quién le falta RUC, correo o dirección para poder facturarle.'],
+      ['CRM Clientes', 'base', 'v-crm', 'Compras, saldo y última compra de cada cliente.']
+    ]],
+    ['Cierre de mes', [
+      ['Capital y Flujo', 'car', 'v-capital', 'Préstamos, tarjetas, cuotas del mes y el balance del negocio.'],
+      ['Crédito Tributario', 'ren', 'v-creditotrib', 'Retenciones recibidas e IVA de compras, listo para el contador.'],
+      ['Gastos y Compras', 'ren', 'v-gastos', 'Gastos fijos y de ruta, con su comprobante cuando lo hay.'],
+      ['Reportes', 'base', 'v-reportes', 'Los comprobantes del período en hoja A4 y en Excel para el contador.']
+    ]],
+    ['Análisis', [
+      ['Dashboard', 'ren', 'v-dashboard', 'Estado de resultados del período sin IVA, utilidad real y avisos de lo que falta registrar.'],
+      ['Metas de Venta', 'ren', 'v-metas', 'Metas por ruta con el avance del mes.'],
+      ['Black Shark', 'ren', 'v-blackshark', 'Dónde se puede ir la plata y qué tamaño sostiene el negocio.']
+    ]],
+    ['Sistema', [
+      ['Usuarios y Auditoría', 'base', null, 'Roles de cada persona y la bitácora de quién hizo qué.'],
+      ['Empleados', 'log', 'v-empleados', 'Adelantos y descuentos de cada empleado.'],
+      ['Puesta en Marcha', 'base', null, 'Respaldo completo de los datos de tu negocio.'],
+      ['Configuración', 'base', 'v-config', 'Datos de tu empresa, numeración del SRI, rutas y proveedores.']
+    ]]
+  ];
+  const PANTALLAS = {};
+  MENU.forEach(([sec, items]) => items.forEach(([n, m, img, d]) => { PANTALLAS[n] = { sec, mod: m, img, desc: d }; }));
+
+  let activos = new Set(ATAJOS.ruta);
+  let elegida = 'Hoja de Carga';
+  let recien = null, antes = new Set(activos);
+
+  // ── Precios y contacto: los define el dueño. Vacío = la página dice «te lo confirmamos en el chat».
+  const WHATSAPP = '';   // solo números, con 593 delante, p. ej. '5939XXXXXXXX'
+  const precios = { modo: 'mes', instalacion: '', base: '', inv: '', log: '', car: '', ben: '', ren: '' };
+  const dinero = (v) => '$' + Number(v).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const valor = (k) => { const n = parseFloat(String(precios[k]).replace(',', '.')); return isFinite(n) && n >= 0 ? n : null; };
+  const sufijo = () => precios.modo === 'mes' ? ' / mes' : '';
+
+  function avisar(t) { const a = $('nota-dep'); a.textContent = t; a.hidden = !t; }
+  function activar(k) {
+    const nuevos = [k, ...(MODULOS[k].requiere || [])].filter((x) => !activos.has(x));
+    nuevos.forEach((x) => activos.add(x));
+    const extra = nuevos.filter((x) => x !== k);
+    avisar(extra.length ? `Se agregó ${extra.map((x) => MODULOS[x].nombre).join(' y ')}: ${POR_QUE[k] || 'lo necesita para funcionar'}.` : '');
+    recien = k;
+  }
+  function desactivar(k) {
+    if (MODULOS[k].siempre) return;
+    activos.delete(k);
+    const caen = ORDEN.filter((x) => activos.has(x) && (MODULOS[x].requiere || []).includes(k));
+    caen.forEach((x) => activos.delete(x));
+    avisar(caen.length ? `También se quitó ${caen.map((x) => MODULOS[x].nombre).join(' y ')}, porque necesita ${MODULOS[k].nombre}.` : '');
+  }
+  function marcarAtajo() {
+    const igual = (a) => a.length === activos.size && a.every((x) => activos.has(x));
+    document.querySelectorAll('[data-atajo]').forEach((b) => b.setAttribute('aria-pressed', String(igual(ATAJOS[b.dataset.atajo]))));
+  }
+
+  function pintarPreguntas() {
+    $('preguntas-lista').innerHTML = PREGUNTAS.map(([k, q, sub]) => {
+      const fija = MODULOS[k].siempre;
+      return `<div class="q"><label for="q-${k}">${esc(q)}<small>${esc(sub)}</small></label>
+        <span class="interruptor"><input type="checkbox" id="q-${k}" data-mod="${k}" ${activos.has(k) ? 'checked' : ''} ${fija ? 'disabled' : ''}><span></span></span></div>`;
+    }).join('');
+  }
+  function pintarMenu() {
+    let h = `<div class="marca-app"><svg aria-hidden="true"><use href="#isotipo"/></svg><div><b>CODIFACT</b><small>Tu negocio</small></div></div>`;
+    MENU.forEach(([sec, items]) => {
+      h += `<div class="sec">${esc(sec)}</div>`;
+      items.forEach(([n, m]) => {
+        const abierto = activos.has(m);
+        const cls = ['item', abierto ? '' : 'cerrada', n === elegida ? 'on' : '', recien === m ? 'recien' : ''].join(' ').trim();
+        h += `<button type="button" class="${cls}" data-pantalla="${esc(n)}" aria-current="${n === elegida ? 'page' : 'false'}">
+          <span class="punto" aria-hidden="true"></span><svg class="candado" aria-hidden="true"><use href="#candado"/></svg><span>${esc(n)}</span>${abierto ? '' : '<span style="position:absolute;left:-9999px">bloqueada</span>'}</button>`;
+      });
+    });
+    $('lado').innerHTML = h;
+  }
+  function pintarVista() {
+    const p = PANTALLAS[elegida], abierto = activos.has(p.mod), mod = MODULOS[p.mod];
+    $('hd-sec').textContent = p.sec; $('hd-tit').textContent = elegida;
+    const est = $('hd-estado'); est.className = 'estado ' + (abierto ? 'si' : 'no'); est.textContent = abierto ? 'Incluida' : 'Bloqueada';
+    if (abierto && p.img) {
+      $('vista').innerHTML = `<button type="button" class="toma" data-ampliar="img/${p.img}.png" aria-label="Ampliar ${esc(elegida)}"><img src="img/${p.img}.png" alt="${esc(elegida)}: ${esc(p.desc)}" loading="lazy"><span class="pie-toma">Datos de ejemplo · toca para ampliar</span></button>`;
+      return;
+    }
+    if (abierto) {
+      $('vista').innerHTML = `<div class="ficha"><span class="ic si"><svg width="22" height="22" aria-hidden="true"><use href="#visto"/></svg></span><h3>${esc(elegida)}</h3><p>${esc(p.desc)}</p><p class="incluye">Incluida en ${esc(mod.nombre)}.</p></div>`;
+      return;
+    }
+    const faltan = (mod.requiere || []).filter((x) => !activos.has(x));
+    const con = faltan.length ? ` También agrega ${faltan.map((x) => MODULOS[x].nombre).join(' y ')}, porque ${POR_QUE[p.mod]}.` : '';
+    $('vista').innerHTML = `<div class="ficha"><span class="ic"><svg width="22" height="22" aria-hidden="true"><use href="#candado"/></svg></span>
+      <h3>${esc(elegida)}</h3><p>Se desbloquea con <b>${esc(mod.nombre)}</b>. ${esc(p.desc)}</p>
+      <p class="incluye"><b>${esc(mod.nombre)}</b> incluye: ${esc(mod.desc)}${esc(con)}</p>
+      <button type="button" class="agregar" data-agregar="${p.mod}">Agregar ${esc(mod.nombre)}</button></div>`;
+  }
+  function pintarOferta() {
+    const lista = ORDEN.filter((k) => activos.has(k));
+    let falta = false, suma = 0;
+    const precioDe = (k) => { const v = valor(k); if (v === null) { falta = true; return '<span class="precio pend">✓</span>'; } suma += v; return `<span class="precio">${dinero(v)}${sufijo()}</span>`; };
+    let h = lista.map((k) => `<li class="${antes.has(k) ? '' : 'nueva'}"><span>${esc(MODULOS[k].nombre)}<small>${MODULOS[k].siempre ? 'Siempre incluido · facturas ilimitadas' : esc(MODULOS[k].desc.split(':')[0].split(',')[0])}</small></span>${precioDe(k)}</li>`).join('');
+    const inst = valor('instalacion');
+    h += `<li><span>Carga de tus bases de datos e instalación<small>Un solo pago</small></span>${inst === null ? '<span class="precio pend">✓</span>' : `<span class="precio">${dinero(inst)}</span>`}</li>`;
+    $('lineas').innerHTML = h;
+    $('perfil').innerHTML = `Armado para un <b>${PERFIL(activos)}</b> · ${lista.length} ${lista.length === 1 ? 'módulo' : 'módulos'} · facturas ilimitadas`;
+    $('dejas').innerHTML = lista.map((k) => `<li class="${antes.has(k) ? '' : 'nueva'}">${esc(DEJAS[k])}</li>`).join('');
+    const t = $('total');
+    if (falta) { t.className = 'cifra pend'; t.textContent = 'Te lo damos al confirmar'; } else { t.className = 'cifra'; t.textContent = dinero(suma) + sufijo(); }
+    antes = new Set(lista);
+  }
+  function textoResumen() {
+    const lista = ORDEN.filter((k) => activos.has(k)).map((k) => '· ' + MODULOS[k].nombre);
+    return `Hola, quiero activar mi CODIFACT.\nMi negocio: ${PERFIL(activos)}.\n\nMódulos:\n${lista.join('\n')}\n\n¿Cuál es el precio y cuándo empezamos?`;
+  }
+  function pintarConfirmar() {
+    const c = $('confirmar');
+    if (WHATSAPP) { c.href = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(textoResumen()); delete c.dataset.copiar; }
+    else { c.href = '#oferta'; c.dataset.copiar = '1'; c.removeAttribute('target'); }
+  }
+  function pintarTodo() { pintarPreguntas(); pintarMenu(); pintarVista(); pintarOferta(); pintarConfirmar(); marcarAtajo(); recien = null; if (window.__pasos) window.__pasos(); if (window.__barra) window.__barra(); }
+
+  // ── Paso a paso (celular): una pregunta por pantalla ──
+  const PM = PREGUNTAS.filter(([k]) => !MODULOS[k].siempre);
+  let pm = 0, tocado = false;
+  window.__pasos = () => {
+    const caja = $('pasos-movil');
+    if (pm >= PM.length) {
+      const n = ORDEN.filter((k) => activos.has(k)).length;
+      caja.innerHTML = `<div class="pm-listo"><b>Tu CODIFACT tiene <em>${n} ${n === 1 ? 'módulo' : 'módulos'}</em></b><p class="pm-sub">Armado para un ${PERFIL(activos)}. Míralo funcionando aquí abajo.</p>
+        <a class="boton" href="#app">Ver mi CODIFACT <i>→</i></a><button type="button" class="boton-texto" id="pm-reiniciar">Volver a responder</button></div>`;
+      $('pm-reiniciar').onclick = () => { pm = 0; armarPasos(); };
+      return;
+    }
+    const [k, q, sub] = PM[pm];
+    $('pm-num').textContent = `Pregunta ${pm + 1} de ${PM.length}`;
+    $('pm-barra').style.width = ((pm) / PM.length * 100) + '%';
+    const preg = $('pm-preg'); preg.textContent = q; preg.style.animation = 'none'; void preg.offsetWidth; preg.style.animation = '';
+    $('pm-sub').textContent = 'Activa: ' + sub;
+    $('pm-atras').hidden = pm === 0;
+  };
+  const htmlPasos = $('pasos-movil').innerHTML;
+  function armarPasos() {
+    $('pasos-movil').innerHTML = htmlPasos;
+    $('pm-si').onclick = () => { activar(PM[pm][0]); pm++; tocado = true; pintarTodo(); };
+    $('pm-no').onclick = () => { desactivar(PM[pm][0]); pm++; tocado = true; pintarTodo(); };
+    $('pm-atras').onclick = () => { pm = Math.max(0, pm - 1); window.__pasos(); };
+    window.__pasos();
+  }
+  armarPasos();
+
+  // ── Barra fija (celular): aparece cuando ya armó algo y la oferta no está a la vista ──
+  let ofertaVisible = false;
+  window.__barra = () => {
+    const n = ORDEN.filter((k) => activos.has(k)).length;
+    $('bp-n').textContent = n + (n === 1 ? ' módulo' : ' módulos');
+    $('barra-plan').classList.toggle('visible', tocado && !ofertaVisible);
+  };
+  if ('IntersectionObserver' in window) new IntersectionObserver((es) => { ofertaVisible = es[0].isIntersecting; window.__barra(); }, { threshold: .25 }).observe($('oferta'));
+
+  $('preguntas-lista').addEventListener('change', (e) => {
+    tocado = true;
+    const k = e.target.dataset.mod; if (!k) return;
+    if (e.target.checked) activar(k); else desactivar(k);
+    if (e.target.checked && PANTALLAS[elegida].mod !== k) { const primera = MENU.flatMap(([, it]) => it).find(([, m]) => m === k); if (primera) elegida = primera[0]; }
+    pintarTodo();
+  });
+  document.querySelectorAll('[data-atajo]').forEach((b) => b.addEventListener('click', () => {
+    activos = new Set(ATAJOS[b.dataset.atajo]); avisar(''); tocado = true; pm = PM.length;
+    if (!activos.has(PANTALLAS[elegida].mod)) elegida = 'Facturar';
+    pintarTodo();
+  }));
+  $('lado').addEventListener('click', (e) => { const b = e.target.closest('[data-pantalla]'); if (!b) return; elegida = b.dataset.pantalla; pintarMenu(); pintarVista(); });
+  $('vista').addEventListener('click', (e) => {
+    const z = e.target.closest('[data-ampliar]');
+    if (z) { const d = $('lupa'); $('lupa-img').src = z.dataset.ampliar; $('lupa-img').alt = 'Captura ampliada de ' + elegida; try { d.showModal(); } catch (err) { d.setAttribute('open', ''); } return; }
+    const b = e.target.closest('[data-agregar]'); if (!b) return; activar(b.dataset.agregar); pintarTodo();
+  });
+  $('confirmar').addEventListener('click', (e) => { if ($('confirmar').dataset.copiar) { e.preventDefault(); $('copiar').click(); } });
+  $('copiar').addEventListener('click', () => {
+    const txt = textoResumen();
+    const ok = () => { const c = $('copiado'); c.textContent = WHATSAPP ? 'Copiado. Pégalo en tu mensaje.' : 'Copiado. El WhatsApp de ventas se publica pronto.'; c.hidden = false; $('texto-copia').hidden = true; };
+    const respaldo = () => { const ta = $('texto-copia'); ta.value = txt; ta.hidden = false; ta.focus(); ta.select(); const c = $('copiado'); c.textContent = 'Selecciona el texto y cópialo.'; c.hidden = false; };
+    try { navigator.clipboard.writeText(txt).then(ok, respaldo); } catch (err) { respaldo(); }
+  });
+  $('lupa-cerrar').addEventListener('click', () => { const d = $('lupa'); try { d.close(); } catch (err) { d.removeAttribute('open'); } });
+  $('lupa').addEventListener('click', (e) => { if (e.target.id === 'lupa') { try { e.target.close(); } catch (err) { e.target.removeAttribute('open'); } } });
+  pintarTodo();
+
+  // ── Al bajar: los bloques ya se ven, solo se acomodan; las cifras cuentan ──
+  if (!quieto && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.remove('espera'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.sube').forEach((el, i) => { if (el.getBoundingClientRect().top > innerHeight) { el.classList.add('espera'); el.style.transitionDelay = (i % 3) * 70 + 'ms'; io.observe(el); } });
+    const fmt = new Intl.NumberFormat('es-EC');
+    const io2 = new IntersectionObserver((es) => es.forEach((e) => {
+      if (!e.isIntersecting) return; io2.unobserve(e.target);
+      const a = Number(e.target.dataset.a), t0 = performance.now();
+      const paso = (t) => { const k = Math.min(1, (t - t0) / 1100); e.target.textContent = fmt.format(Math.round(a * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(paso); };
+      requestAnimationFrame(paso);
+    }), { threshold: .6 });
+    document.querySelectorAll('.contar').forEach((el) => io2.observe(el));
+    const io3 = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('visto'); io3.unobserve(e.target); } }), { threshold: .4 });
+    document.querySelectorAll('.golpe').forEach((el) => io3.observe(el));
+  }
+})();
+</script>
