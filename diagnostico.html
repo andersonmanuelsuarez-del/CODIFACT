@@ -171,6 +171,8 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .campo { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; font-weight:600; }
 .campo input { font:inherit; font-weight:400; padding:13px 14px; border:2px solid var(--linea); background:var(--hoja); color:var(--tinta); }
 .campo input:focus { border-color:var(--verde); outline:none; }
+.consiente { display:flex; gap:10px; align-items:flex-start; font-size:.9rem; color:var(--gris); margin:4px 0 6px; line-height:1.4; cursor:pointer; }
+.consiente input { width:20px; height:20px; accent-color:var(--verde); flex:none; margin-top:1px; }
 .error { color:var(--alerta); font-size:.9rem; min-height:1.4em; margin:4px 0 12px; }
 
 /* Resultado */
@@ -294,11 +296,15 @@ button { font:inherit; color:inherit; cursor:pointer; }
   <!-- DATOS -->
   <section class="pantalla datos" id="p-datos" hidden>
     <h2>Tu diagnóstico <span style="color:var(--verde)">está listo</span></h2>
-    <p>Dinos a quién se lo preparamos. Nada se envía hasta que tú nos escribas.</p>
+    <p>Dinos a quién se lo preparamos. Te escribimos por WhatsApp para mostrarte tu negocio en CODIFACT.</p>
     <form id="form-datos" novalidate>
       <label class="campo" for="d-nombre">Tu nombre<input id="d-nombre" autocomplete="given-name" placeholder="Ej.: María"></label>
       <label class="campo" for="d-negocio">Nombre de tu negocio<input id="d-negocio" autocomplete="organization" placeholder="Ej.: Comercial La Esperanza"></label>
+      <label class="campo" for="d-whatsapp">Tu WhatsApp<input id="d-whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej.: 099 123 4567"></label>
       <label class="campo" for="d-ciudad">Ciudad<input id="d-ciudad" autocomplete="address-level2" placeholder="Ej.: Quito"></label>
+      <!-- Trampa para robots: una persona nunca la ve ni la llena. -->
+      <input id="d-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
+      <label class="consiente" for="d-acepto"><input type="checkbox" id="d-acepto"> Acepto que CODIFACT guarde estos datos y me contacte por WhatsApp sobre mi diagnóstico. No los compartimos con nadie.</label>
       <p class="error" id="d-error" role="alert"></p>
       <button class="boton" type="submit">Ver mi diagnóstico <span aria-hidden="true">→</span></button>
     </form>
@@ -314,6 +320,9 @@ button { font:inherit; color:inherit; cursor:pointer; }
    WHATSAPP: número con código de país y sin «+» (ej. "593991234567").
    Vacío: el botón copia el mensaje para pegarlo en el chat. */
 const WHATSAPP = '';
+/* LEADS_URL: la dirección del script de Google Sheets que guarda cada lead
+   (ver herramientas/crm-leads/LEEME.md). Vacío: no se guarda nada. */
+const LEADS_URL = '';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
@@ -506,11 +515,41 @@ function textoWhatsApp(d, datos) {
 
 $('form-datos').addEventListener('submit', (e) => {
   e.preventDefault();
-  const datos = { nombre: $('d-nombre').value.trim(), negocio: $('d-negocio').value.trim(), ciudad: $('d-ciudad').value.trim() };
-  if (!datos.nombre || !datos.negocio) { $('d-error').textContent = 'Escribe tu nombre y el de tu negocio.'; (datos.nombre ? $('d-negocio') : $('d-nombre')).focus(); return; }
+  const datos = { nombre: $('d-nombre').value.trim(), negocio: $('d-negocio').value.trim(), ciudad: $('d-ciudad').value.trim(),
+                  whatsapp: $('d-whatsapp').value.replace(/[^\d+]/g, '') };
+  const err = (msg, el) => { $('d-error').textContent = msg; el.focus(); };
+  if (!datos.nombre) return err('Escribe tu nombre.', $('d-nombre'));
+  if (!datos.negocio) return err('Escribe el nombre de tu negocio.', $('d-negocio'));
+  if (!/^(\+?593|0)?9\d{8}$/.test(datos.whatsapp)) return err('Escribe tu número de celular, por ejemplo 099 123 4567.', $('d-whatsapp'));
+  if (!$('d-acepto').checked) return err('Marca la casilla para que podamos escribirte.', $('d-acepto'));
   $('d-error').textContent = '';
+  guardarLead(datos);
   pintarResultado(datos);
 });
+
+/* ═══ El lead llega a la hoja de Google (el CRM) ═══
+   Se manda sin esperar respuesta: si falla, la persona igual ve su resultado.
+   `text/plain` evita la consulta previa del navegador, que Apps Script no atiende. */
+function temperatura(d) {
+  let p = 0;
+  if (resp.cuando === 'ya') p += 2; else if (resp.cuando === 'mes') p += 1; else if (resp.cuando === 'mirando') p -= 1;
+  if (['no', 'vendi', 'masmenos'].includes(resp.gano)) p += 1;
+  if (d.indice < 40) p += 1;
+  if (['Distribuidora', 'Completo'].includes(d.plan)) p += 1;
+  return p >= 4 ? 'Caliente' : p >= 2 ? 'Tibio' : 'Frío';
+}
+function guardarLead(datos) {
+  if (!LEADS_URL || $('d-web').value) return;
+  const d = diagnosticar();
+  const op = (id) => { const q = PREGUNTAS.find(x => x.id === id); return (q.ops.find(o => o[0] === resp[id]) || [, ''])[1]; };
+  const fila = {
+    nombre: datos.nombre, negocio: datos.negocio, ciudad: datos.ciudad, whatsapp: datos.whatsapp,
+    giro: op('giro'), factura: op('factura'), cantidad: op('cantidad'), inventario: op('bodega'), credito: op('credito'),
+    ruta: op('ruta'), gano: op('gano'), cuando: op('cuando'), indice: d.indice, fuga: d.fuga.n, plan: d.plan,
+    temperatura: temperatura(d), mensaje: textoWhatsApp(d, datos), origen: location.hostname || 'local'
+  };
+  fetch(LEADS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(fila) }).catch(() => {});
+}
 
 function pintarResultado(datos) {
   const d = diagnosticar(), f = FUGAS[d.fuga.n], g = d.giro;
