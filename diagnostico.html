@@ -173,7 +173,15 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .campo input:focus { border-color:var(--verde); outline:none; }
 .consiente { display:flex; gap:10px; align-items:flex-start; font-size:.9rem; color:var(--gris); margin:4px 0 6px; line-height:1.4; cursor:pointer; }
 .consiente input { width:20px; height:20px; accent-color:var(--verde); flex:none; margin-top:1px; }
-.error { color:var(--alerta); font-size:.9rem; min-height:1.4em; margin:4px 0 12px; }
+.boton { display:inline-flex; align-items:center; gap:12px; background:var(--verde); color:var(--papel); border:0; padding:17px 26px; font:800 1.45rem/1 var(--rotulo); text-transform:uppercase; letter-spacing:.03em; cursor:pointer; }
+.boton:hover { background:#174a36; }
+.boton[disabled] { opacity:.7; cursor:wait; }
+.datos .boton { width:100%; justify-content:center; }
+.error { color:var(--alerta); font-weight:600; font-size:.95rem; margin:4px 0 12px; }
+.error:not(:empty) { background:var(--alerta-claro); border-left:5px solid var(--alerta); padding:10px 12px; }
+.consiente.falta { color:var(--alerta); font-weight:600; }
+.recibido { background:var(--verde-claro); border-left:6px solid var(--verde); padding:16px 18px; margin:18px 0 6px; font-size:1.05rem; }
+.recibido b { display:block; font:900 1.5rem/1.05 var(--rotulo); text-transform:uppercase; color:var(--verde); margin-bottom:4px; }
 
 /* Resultado */
 .resultado { padding-block:30px 10px; }
@@ -521,14 +529,17 @@ $('form-datos').addEventListener('submit', (e) => {
   e.preventDefault();
   const datos = { nombre: $('d-nombre').value.trim(), negocio: $('d-negocio').value.trim(), ciudad: $('d-ciudad').value.trim(),
                   whatsapp: $('d-whatsapp').value.replace(/[^\d+]/g, '') };
-  const err = (msg, el) => { $('d-error').textContent = msg; el.focus(); };
+  const err = (msg, el) => { $('d-error').textContent = msg; $('d-acepto').closest('label').classList.toggle('falta', el === $('d-acepto')); el.focus(); $('d-error').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
   if (!datos.nombre) return err('Escribe tu nombre.', $('d-nombre'));
   if (!datos.negocio) return err('Escribe el nombre de tu negocio.', $('d-negocio'));
   if (!/^(\+?593|0)?9\d{8}$/.test(datos.whatsapp)) return err('Escribe tu número de celular, por ejemplo 099 123 4567.', $('d-whatsapp'));
   if (!$('d-acepto').checked) return err('Marca la casilla para que podamos escribirte.', $('d-acepto'));
   $('d-error').textContent = '';
+  $('d-acepto').closest('label').classList.remove('falta');
+  const btn = $('form-datos').querySelector('button[type=submit]');
+  btn.disabled = true; btn.firstChild.textContent = 'Preparando tu diagnóstico… ';
   guardarLead(datos);
-  pintarResultado(datos);
+  setTimeout(() => { pintarResultado(datos); btn.disabled = false; btn.firstChild.textContent = 'Ver mi diagnóstico '; }, 700);
 });
 
 /* ═══ El lead llega al CRM (Firestore) ═══
@@ -570,6 +581,7 @@ function pintarResultado(datos) {
   const urgente = ['ya', 'mes'].includes(resp.cuando);
   $('paso').textContent = 'Tu diagnóstico';
   $('p-resultado').innerHTML = `
+    <div class="recibido" role="status"><b>¡Listo, ${esc(datos.nombre)}! Recibimos tu diagnóstico</b>Te escribiremos por WhatsApp al ${esc(datos.whatsapp)} para mostrarte tu negocio funcionando en CODIFACT. Mientras tanto, mira tu resultado.</div>
     <div class="res-cab">
       <div><small>Diagnóstico de ${esc(datos.negocio)}</small><h2>${esc(datos.nombre)}, ${d.indice < 40 ? 'tu negocio está trabajando a ciegas' : d.indice < 65 ? 'tienes el control a medias' : 'vas bien, y se puede afinar'}</h2></div>
       <div class="res-indice"><small>Índice de control</small><div class="indice">${d.indice}<span>/100</span></div></div>
