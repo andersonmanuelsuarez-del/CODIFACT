@@ -322,7 +322,7 @@ button { font:inherit; color:inherit; cursor:pointer; }
 const WHATSAPP = '';
 /* CRM: el proyecto de Firebase del CRM de CODIFACT (ver crm/LEEME.md).
    proyecto = projectId y clave = apiKey de crm/config.js. Vacío: no se guarda nada. */
-const CRM = { proyecto: '', clave: '' };
+const CRM = { proyecto: 'codifact', clave: 'AIzaSyBQYMiByyxkxj2we3JO2AsBW7yOHhTpk8I' };
 // De qué pauta vino: el enlace de cada anuncio trae ?utm_campaign=… (lo arma el CRM).
 const UTM = (() => { const q = new URLSearchParams(location.search), o = {};
   for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) if (q.get(k)) o[k] = q.get(k).slice(0, 120);
