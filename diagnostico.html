@@ -181,6 +181,8 @@ button { font:inherit; color:inherit; cursor:pointer; }
 .error:not(:empty) { background:var(--alerta-claro); border-left:5px solid var(--alerta); padding:10px 12px; }
 .consiente.falta { color:var(--alerta); font-weight:600; }
 .recibido { background:var(--verde-claro); border-left:6px solid var(--verde); padding:16px 18px; margin:18px 0 6px; font-size:1.05rem; }
+.recibido.falla { background:var(--alerta-claro); border-left-color:var(--alerta); }
+.recibido.falla b { color:var(--alerta); }
 .recibido b { display:block; font:900 1.5rem/1.05 var(--rotulo); text-transform:uppercase; color:var(--verde); margin-bottom:4px; }
 
 /* Resultado */
@@ -306,13 +308,13 @@ button { font:inherit; color:inherit; cursor:pointer; }
     <h2>Tu diagnóstico <span style="color:var(--verde)">está listo</span></h2>
     <p>Dinos a quién se lo preparamos. Te escribimos por WhatsApp para mostrarte tu negocio en CODIFACT.</p>
     <form id="form-datos" novalidate>
-      <label class="campo" for="d-nombre">Tu nombre<input id="d-nombre" autocomplete="given-name" placeholder="Ej.: María"></label>
-      <label class="campo" for="d-negocio">Nombre de tu negocio<input id="d-negocio" autocomplete="organization" placeholder="Ej.: Comercial La Esperanza"></label>
-      <label class="campo" for="d-whatsapp">Tu WhatsApp<input id="d-whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej.: 099 123 4567"></label>
-      <label class="campo" for="d-ciudad">Ciudad<input id="d-ciudad" autocomplete="address-level2" placeholder="Ej.: Quito"></label>
+      <label class="campo" for="d-nombre">Tu nombre<input id="d-nombre" maxlength="80" autocomplete="given-name" placeholder="Ej.: María"></label>
+      <label class="campo" for="d-negocio">Nombre de tu negocio<input id="d-negocio" maxlength="120" autocomplete="organization" placeholder="Ej.: Comercial La Esperanza"></label>
+      <label class="campo" for="d-whatsapp">Tu WhatsApp<input id="d-whatsapp" maxlength="20" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej.: 099 123 4567"></label>
+      <label class="campo" for="d-ciudad">Ciudad<input id="d-ciudad" maxlength="80" autocomplete="address-level2" placeholder="Ej.: Quito"></label>
       <!-- Trampa para robots: una persona nunca la ve ni la llena. -->
       <input id="d-web" name="web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
-      <label class="consiente" for="d-acepto"><input type="checkbox" id="d-acepto"> Acepto que CODIFACT guarde estos datos y me contacte por WhatsApp sobre mi diagnóstico. No los compartimos con nadie.</label>
+      <p class="consiente" id="d-acepto-txt">Al tocar «Ver mi diagnóstico» aceptas que CODIFACT guarde estos datos y te contacte por WhatsApp sobre tu diagnóstico. No los compartimos con nadie.</p>
       <p class="error" id="d-error" role="alert"></p>
       <button class="boton" type="submit">Ver mi diagnóstico <span aria-hidden="true">→</span></button>
     </form>
@@ -333,7 +335,7 @@ const WHATSAPP = '';
 const CRM = { proyecto: 'codifact', clave: 'AIzaSyBQYMiByyxkxj2we3JO2AsBW7yOHhTpk8I' };
 // De qué pauta vino: el enlace de cada anuncio trae ?utm_campaign=… (lo arma el CRM).
 const UTM = (() => { const q = new URLSearchParams(location.search), o = {};
-  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) if (q.get(k)) o[k] = q.get(k).slice(0, 120);
+  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) if (q.get(k)) o[k] = q.get(k).slice(0, k === 'utm_source' || k === 'utm_medium' ? 80 : 120);
   return o; })();
 
 const $ = (id) => document.getElementById(id);
@@ -525,21 +527,20 @@ function textoWhatsApp(d, datos) {
   ].join('\n');
 }
 
-$('form-datos').addEventListener('submit', (e) => {
+$('form-datos').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const datos = { nombre: $('d-nombre').value.trim(), negocio: $('d-negocio').value.trim(), ciudad: $('d-ciudad').value.trim(),
-                  whatsapp: $('d-whatsapp').value.replace(/[^\d+]/g, '') };
-  const err = (msg, el) => { $('d-error').textContent = msg; $('d-acepto').closest('label').classList.toggle('falta', el === $('d-acepto')); el.focus(); $('d-error').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  const datos = { nombre: $('d-nombre').value.trim().slice(0, 80), negocio: $('d-negocio').value.trim().slice(0, 120),
+                  ciudad: $('d-ciudad').value.trim().slice(0, 80), whatsapp: $('d-whatsapp').value.replace(/[^\d+]/g, '') };
+  const err = (msg, el) => { $('d-error').textContent = msg; el.focus(); $('d-error').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
   if (!datos.nombre) return err('Escribe tu nombre.', $('d-nombre'));
   if (!datos.negocio) return err('Escribe el nombre de tu negocio.', $('d-negocio'));
   if (!/^(\+?593|0)?9\d{8}$/.test(datos.whatsapp)) return err('Escribe tu número de celular, por ejemplo 099 123 4567.', $('d-whatsapp'));
-  if (!$('d-acepto').checked) return err('Marca la casilla para que podamos escribirte.', $('d-acepto'));
   $('d-error').textContent = '';
-  $('d-acepto').closest('label').classList.remove('falta');
   const btn = $('form-datos').querySelector('button[type=submit]');
-  btn.disabled = true; btn.firstChild.textContent = 'Preparando tu diagnóstico… ';
-  guardarLead(datos);
-  setTimeout(() => { pintarResultado(datos); btn.disabled = false; btn.firstChild.textContent = 'Ver mi diagnóstico '; }, 700);
+  btn.disabled = true; btn.firstChild.textContent = 'Enviando tu diagnóstico… ';
+  const ok = await guardarLead(datos);
+  btn.disabled = false; btn.firstChild.textContent = 'Ver mi diagnóstico ';
+  pintarResultado(datos, ok);
 });
 
 /* ═══ El lead llega al CRM (Firestore) ═══
@@ -554,34 +555,56 @@ function temperatura(d) {
   if (['Distribuidora', 'Completo'].includes(d.plan)) p += 1;
   return p >= 4 ? 'Caliente' : p >= 2 ? 'Tibio' : 'Frío';
 }
-function guardarLead(datos) {
-  if (!CRM.proyecto || !CRM.clave || $('d-web').value) return;
+/* Envía el lead y ESPERA la respuesta. Reintenta 3 veces; si aun así no
+   llega, lo guarda en el teléfono y lo vuelve a mandar al abrir la página.
+   Devuelve true solo si la base lo guardó (o ya lo tenía: 409). */
+const PENDIENTE = 'codifact-lead-pendiente';
+let ultimoEnvio = null;
+async function enviar(envio) {
+  for (let intento = 0; intento < 3; intento++) {
+    try {
+      const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(envio.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: envio.cuerpo, signal: ctl.signal });
+      clearTimeout(reloj);
+      if (r.ok || r.status === 409) { try { localStorage.removeItem(PENDIENTE); } catch {} return true; }
+      if (r.status === 400 || r.status === 403) break;   // rechazado: reintentar no sirve
+    } catch {}
+    await new Promise(ok => setTimeout(ok, 800 * (intento + 1)));
+  }
+  try { localStorage.setItem(PENDIENTE, JSON.stringify(envio)); } catch {}
+  return false;
+}
+async function guardarLead(datos) {
+  if ($('d-web').value) return true;                   // robot: ve el resultado y nada más
+  if (!CRM.proyecto || !CRM.clave) return false;
   const d = diagnosticar();
   const op = (id) => { const q = PREGUNTAS.find(x => x.id === id); return (q.ops.find(o => o[0] === resp[id]) || [, ''])[1]; };
   const fila = {
     nombre: datos.nombre, negocio: datos.negocio, ciudad: datos.ciudad, whatsapp: datos.whatsapp,
     giro: op('giro'), factura: op('factura'), cantidad: op('cantidad'), inventario: op('bodega'), credito: op('credito'),
     ruta: op('ruta'), gano: op('gano'), cuando: op('cuando'), indice: d.indice, fuga: d.fuga.n, plan: d.plan,
-    temperatura: temperatura(d), mensaje: textoWhatsApp(d, datos), origen: (location.hostname || 'local').slice(0, 120),
+    temperatura: temperatura(d), mensaje: textoWhatsApp(d, datos).slice(0, 2000), origen: (location.hostname || 'local').slice(0, 120),
     referido: document.referrer.slice(0, 300), ...UTM, estado: 'Nuevo', fuente: 'embudo'
   };
   const campos = {};
   for (const [k, v] of Object.entries(fila)) campos[k] = typeof v === 'number' ? { integerValue: String(Math.round(v)) } : { stringValue: String(v ?? '') };
   const id = Array.from(crypto.getRandomValues(new Uint8Array(15)), b => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
   const base = `projects/${CRM.proyecto}/databases/(default)/documents`;
-  fetch(`https://firestore.googleapis.com/v1/${base}:commit?key=${encodeURIComponent(CRM.clave)}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ writes: [{ update: { name: `${base}/leads/${id}`, fields: campos },
-      updateTransforms: [{ fieldPath: 'creado', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } }] })
-  }).catch(() => {});
+  ultimoEnvio = { url: `https://firestore.googleapis.com/v1/${base}:commit?key=${encodeURIComponent(CRM.clave)}`,
+    cuerpo: JSON.stringify({ writes: [{ update: { name: `${base}/leads/${id}`, fields: campos },
+      updateTransforms: [{ fieldPath: 'creado', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } }] }) };
+  return enviar(ultimoEnvio);
 }
+// Un envío que quedó pendiente en este teléfono se manda al abrir la página.
+try { const p = JSON.parse(localStorage.getItem(PENDIENTE) || 'null'); if (p && p.url && p.cuerpo) enviar(p); } catch {}
 
-function pintarResultado(datos) {
+function pintarResultado(datos, guardado = true) {
   const d = diagnosticar(), f = FUGAS[d.fuga.n], g = d.giro;
   const urgente = ['ya', 'mes'].includes(resp.cuando);
   $('paso').textContent = 'Tu diagnóstico';
   $('p-resultado').innerHTML = `
-    <div class="recibido" role="status"><b>¡Listo, ${esc(datos.nombre)}! Recibimos tu diagnóstico</b>Te escribiremos por WhatsApp al ${esc(datos.whatsapp)} para mostrarte tu negocio funcionando en CODIFACT. Mientras tanto, mira tu resultado.</div>
+    ${guardado ? `<div class="recibido" role="status"><b>¡Listo, ${esc(datos.nombre)}! Recibimos tu diagnóstico</b>Te escribiremos por WhatsApp al ${esc(datos.whatsapp)} para mostrarte tu negocio funcionando en CODIFACT. Mientras tanto, mira tu resultado.</div>`
+      : `<div class="recibido falla" role="alert" id="aviso-envio"><b>Tu diagnóstico está listo, pero no nos llegó</b>Parece que falló la conexión. Toca «Reintentar envío» o escríbenos por WhatsApp con el botón de abajo.<br><button class="boton" type="button" id="reintentar" style="margin-top:12px">Reintentar envío</button></div>`}
     <div class="res-cab">
       <div><small>Diagnóstico de ${esc(datos.negocio)}</small><h2>${esc(datos.nombre)}, ${d.indice < 40 ? 'tu negocio está trabajando a ciegas' : d.indice < 65 ? 'tienes el control a medias' : 'vas bien, y se puede afinar'}</h2></div>
       <div class="res-indice"><small>Índice de control</small><div class="indice">${d.indice}<span>/100</span></div></div>
@@ -614,6 +637,12 @@ function pintarResultado(datos) {
     <div id="copia"></div>
     <div class="pie"><span>Facturas ilimitadas · Nos traemos tus datos · Pagas solo lo que usas</span><button type="button" id="rehacer">Hacer el diagnóstico otra vez</button></div>`;
   mostrar('p-resultado');
+  $('reintentar')?.addEventListener('click', async (ev) => {
+    const b = ev.currentTarget; b.disabled = true; b.textContent = 'Enviando…';
+    if (ultimoEnvio && await enviar(ultimoEnvio)) {
+      $('aviso-envio').outerHTML = `<div class="recibido" role="status"><b>¡Listo, ${esc(datos.nombre)}! Recibimos tu diagnóstico</b>Te escribiremos por WhatsApp al ${esc(datos.whatsapp)}.</div>`;
+    } else { b.disabled = false; b.textContent = 'Reintentar envío'; }
+  });
   requestAnimationFrame(() => setTimeout(() => { $('res-areas').innerHTML = barras(d.areas); }, 60));
   const msg = textoWhatsApp(d, datos);
   $('enviar').addEventListener('click', async () => {
