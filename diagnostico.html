@@ -320,9 +320,13 @@ button { font:inherit; color:inherit; cursor:pointer; }
    WHATSAPP: número con código de país y sin «+» (ej. "593991234567").
    Vacío: el botón copia el mensaje para pegarlo en el chat. */
 const WHATSAPP = '';
-/* LEADS_URL: la dirección del script de Google Sheets que guarda cada lead
-   (ver herramientas/crm-leads/LEEME.md). Vacío: no se guarda nada. */
-const LEADS_URL = '';
+/* CRM: el proyecto de Firebase del CRM de CODIFACT (ver crm/LEEME.md).
+   proyecto = projectId y clave = apiKey de crm/config.js. Vacío: no se guarda nada. */
+const CRM = { proyecto: '', clave: '' };
+// De qué pauta vino: el enlace de cada anuncio trae ?utm_campaign=… (lo arma el CRM).
+const UTM = (() => { const q = new URLSearchParams(location.search), o = {};
+  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) if (q.get(k)) o[k] = q.get(k).slice(0, 120);
+  return o; })();
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
@@ -527,9 +531,10 @@ $('form-datos').addEventListener('submit', (e) => {
   pintarResultado(datos);
 });
 
-/* ═══ El lead llega a la hoja de Google (el CRM) ═══
+/* ═══ El lead llega al CRM (Firestore) ═══
    Se manda sin esperar respuesta: si falla, la persona igual ve su resultado.
-   `text/plain` evita la consulta previa del navegador, que Apps Script no atiende. */
+   Las reglas del CRM solo dejan CREAR un lead con estos campos; la fecha la
+   pone el servidor (REQUEST_TIME) para que nadie la invente. */
 function temperatura(d) {
   let p = 0;
   if (resp.cuando === 'ya') p += 2; else if (resp.cuando === 'mes') p += 1; else if (resp.cuando === 'mirando') p -= 1;
@@ -539,16 +544,25 @@ function temperatura(d) {
   return p >= 4 ? 'Caliente' : p >= 2 ? 'Tibio' : 'Frío';
 }
 function guardarLead(datos) {
-  if (!LEADS_URL || $('d-web').value) return;
+  if (!CRM.proyecto || !CRM.clave || $('d-web').value) return;
   const d = diagnosticar();
   const op = (id) => { const q = PREGUNTAS.find(x => x.id === id); return (q.ops.find(o => o[0] === resp[id]) || [, ''])[1]; };
   const fila = {
     nombre: datos.nombre, negocio: datos.negocio, ciudad: datos.ciudad, whatsapp: datos.whatsapp,
     giro: op('giro'), factura: op('factura'), cantidad: op('cantidad'), inventario: op('bodega'), credito: op('credito'),
     ruta: op('ruta'), gano: op('gano'), cuando: op('cuando'), indice: d.indice, fuga: d.fuga.n, plan: d.plan,
-    temperatura: temperatura(d), mensaje: textoWhatsApp(d, datos), origen: location.hostname || 'local'
+    temperatura: temperatura(d), mensaje: textoWhatsApp(d, datos), origen: (location.hostname || 'local').slice(0, 120),
+    referido: document.referrer.slice(0, 300), ...UTM, estado: 'Nuevo', fuente: 'embudo'
   };
-  fetch(LEADS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(fila) }).catch(() => {});
+  const campos = {};
+  for (const [k, v] of Object.entries(fila)) campos[k] = typeof v === 'number' ? { integerValue: String(Math.round(v)) } : { stringValue: String(v ?? '') };
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(15)), b => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+  const base = `projects/${CRM.proyecto}/databases/(default)/documents`;
+  fetch(`https://firestore.googleapis.com/v1/${base}:commit?key=${encodeURIComponent(CRM.clave)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ writes: [{ update: { name: `${base}/leads/${id}`, fields: campos },
+      updateTransforms: [{ fieldPath: 'creado', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } }] })
+  }).catch(() => {});
 }
 
 function pintarResultado(datos) {
